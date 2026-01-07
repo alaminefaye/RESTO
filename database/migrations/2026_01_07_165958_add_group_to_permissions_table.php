@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->string('group')->nullable()->after('guard_name');
-        });
+        if (Schema::hasTable('permissions') && !Schema::hasColumn('permissions', 'group')) {
+            Schema::table('permissions', function (Blueprint $table) {
+                $table->string('group')->nullable()->after('guard_name');
+            });
+        }
     }
 
     public function down(): void
