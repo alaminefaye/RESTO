@@ -1,0 +1,342 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Commande;
+use App\Models\Product;
+use App\Models\Table;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+class CommandeController extends Controller
+{
+    /**
+     * Liste des commandes
+     * GET /api/commandes
+     */
+    public function index(Request $request)
+    {
+        $query = Commande::with(['table', 'user', 'produits']);
+
+        // Filtres
+        if ($request->has('table_id')) {
+            $query->ofTable($request->table_id);
+        }
+
+        if ($request->has('statut')) {
+            $query->ofStatut($request->statut);
+        }
+
+        if ($request->has('date')) {
+            $query->whereDate('created_at', $request->date);
+        } else {
+            // Par défaut, commandes du jour
+            $query->duJour();
+        }
+
+        $commandes = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $commandes->map(fn($c) => $this->formatCommande($c)),
+        ]);
+    }
+
+    /**
+     * Créer une commande
+     * POST /api/commandes
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'table_id' => 'required|exists:tables,id',
+            'notes' => 'nullable|string',
+            'produits' => 'required|array|min:1',
+            'produits.*.produit_id' => 'required|exists:produits,id',
+            'produits.*.quantite' => 'required|integer|min:1',
+            'produits.*.notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Créer la commande
+            $commande = Commande::create([
+                'table_id' => $request->table_id,
+                'user_id' => auth()->id(),
+                'notes' => $request->notes,
+            ]);
+
+            // Ajouter les produits
+            foreach ($request->produits as $item) {
+                $produit = Product::find($item['produit_id']);
+                
+                if (!$produit->isDisponible()) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Le produit {$produit->nom} n'est pas disponible",
+                    ], 400);
+                }
+
+                $commande->ajouterProduit(
+                    $produit,
+                    $item['quantite'],
+                    $item['notes'] ?? null
+                );
+            }
+
+            // Marquer la table comme occupée
+            $table = Table::find($request->table_id);
+            if ($table->isLibre()) {
+                $table->occuper();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Commande créée avec succès',
+                'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création de la commande',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Afficher une commande
+     * GET /api/commandes/{id}
+     */
+    public function show($id)
+    {
+        $commande = Commande::with(['table', 'user', 'produits'])->find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatCommande($commande),
+        ]);
+    }
+
+    /**
+     * Mettre à jour une commande (ajouter/modifier produits)
+     * PUT/PATCH /api/commandes/{id}
+     */
+    public function update(Request $request, $id)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        if (!$commande->peutEtreModifiee()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette commande ne peut plus être modifiée',
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string',
+            'statut' => 'sometimes|in:attente,preparation,servie,terminee,annulee',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $commande->update($validator->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Commande mise à jour avec succès',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
+     * Ajouter un produit à une commande existante
+     * POST /api/commandes/{id}/produits
+     */
+    public function addProduit(Request $request, $id)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        if (!$commande->peutEtreModifiee()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette commande ne peut plus être modifiée',
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'produit_id' => 'required|exists:produits,id',
+            'quantite' => 'required|integer|min:1',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $produit = Product::find($request->produit_id);
+
+        if (!$produit->isDisponible()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Le produit {$produit->nom} n'est pas disponible",
+            ], 400);
+        }
+
+        $commande->ajouterProduit($produit, $request->quantite, $request->notes);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produit ajouté avec succès',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
+     * Retirer un produit d'une commande
+     * DELETE /api/commandes/{id}/produits/{produitId}
+     */
+    public function removeProduit($id, $produitId)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        if (!$commande->peutEtreModifiee()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette commande ne peut plus être modifiée',
+            ], 400);
+        }
+
+        $commande->retirerProduit($produitId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produit retiré avec succès',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
+     * Changer le statut d'une commande
+     * PATCH /api/commandes/{id}/statut
+     */
+    public function updateStatut(Request $request, $id)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'statut' => 'required|in:attente,preparation,servie,terminee,annulee',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $commande->changerStatut($request->statut);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Statut mis à jour avec succès',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
+     * Formater une commande pour la réponse
+     */
+    private function formatCommande(Commande $commande): array
+    {
+        return [
+            'id' => $commande->id,
+            'table' => $commande->table ? [
+                'id' => $commande->table->id,
+                'numero' => $commande->table->numero,
+                'type' => $commande->table->type,
+            ] : null,
+            'user' => $commande->user ? [
+                'id' => $commande->user->id,
+                'name' => $commande->user->name,
+            ] : null,
+            'statut' => $commande->statut,
+            'statut_display' => $commande->statut_display,
+            'montant_total' => $commande->montant_total,
+            'notes' => $commande->notes,
+            'produits' => $commande->produits->map(function($produit) {
+                return [
+                    'id' => $produit->id,
+                    'nom' => $produit->nom,
+                    'prix_unitaire' => $produit->pivot->prix_unitaire,
+                    'quantite' => $produit->pivot->quantite,
+                    'notes' => $produit->pivot->notes,
+                    'sous_total' => $produit->pivot->prix_unitaire * $produit->pivot->quantite,
+                ];
+            }),
+            'created_at' => $commande->created_at,
+            'updated_at' => $commande->updated_at,
+        ];
+    }
+}

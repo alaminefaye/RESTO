@@ -1,0 +1,68 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
+class SpatieRolesPermissionsSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Reset cached roles and permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Create permissions with groups
+        $permissionsByGroup = [
+            'users' => ['manage_users', 'view_users'],
+            'roles' => ['manage_roles', 'view_roles'],
+            'tables' => ['manage_tables', 'view_tables', 'update_table_status'],
+            'menu' => ['manage_menu', 'view_menu', 'toggle_product_availability'],
+            'orders' => ['create_orders', 'view_orders', 'update_orders', 'update_order_status', 'cancel_orders'],
+            'stock' => ['manage_stock', 'view_stock', 'manage_suppliers', 'manage_recipes', 'perform_inventory'],
+            'cashier' => ['manage_cashier', 'view_cashier', 'process_payments', 'generate_invoices'],
+            'reservations' => ['manage_reservations', 'view_reservations', 'confirm_reservations'],
+            'customers' => ['manage_customers', 'view_customers', 'manage_loyalty', 'manage_promotions'],
+            'reports' => ['view_reports', 'export_reports', 'view_dashboard'],
+            'settings' => ['manage_settings', 'view_settings'],
+        ];
+
+        foreach ($permissionsByGroup as $group => $permissions) {
+            foreach ($permissions as $permission) {
+                Permission::firstOrCreate(
+                    ['name' => $permission], 
+                    ['group' => $group]
+                );
+            }
+        }
+
+        // Create roles and assign permissions
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->syncPermissions(Permission::all());
+
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $manager->syncPermissions([
+            'view_dashboard', 'manage_tables', 'view_tables', 'manage_menu', 'view_menu',
+            'create_orders', 'view_orders', 'update_orders', 'update_order_status', 'cancel_orders',
+            'manage_stock', 'view_stock', 'manage_reservations',
+            'view_reservations', 'manage_customers', 'view_customers', 'manage_promotions',
+            'view_reports', 'export_reports', 'manage_settings', 'view_settings'
+        ]);
+
+        $caissier = Role::firstOrCreate(['name' => 'caissier']);
+        $caissier->syncPermissions([
+            'view_dashboard', 'view_tables', 'view_menu', 'create_orders', 'view_orders', 'update_orders',
+            'manage_cashier', 'view_cashier', 'process_payments', 'generate_invoices',
+            'view_customers', 'view_reports', 'update_order_status'
+        ]);
+
+        $serveur = Role::firstOrCreate(['name' => 'serveur']);
+        $serveur->syncPermissions([
+            'view_tables', 'view_menu', 'create_orders', 'view_orders', 'update_orders', 'view_reservations'
+        ]);
+
+        $this->command->info('✓ Rôles et permissions créés avec Spatie !');
+    }
+}
+

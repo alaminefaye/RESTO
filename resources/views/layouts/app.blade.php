@@ -90,11 +90,91 @@
                     <li class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                         <a href="{{ route('dashboard') }}" class="menu-link">
                             <i class="menu-icon tf-icons bx bx-home-circle"></i>
-                            <div data-i18n="Analytics">Dashboard</div>
+                            <div>Dashboard</div>
                         </a>
                     </li>
                     
-                    @yield('menu-items')
+                    <!-- Tables -->
+                    <li class="menu-item {{ request()->routeIs('tables.*') ? 'active' : '' }}">
+                        <a href="{{ route('tables.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                            <div>Tables</div>
+                        </a>
+                    </li>
+                    
+                    <!-- Menu -->
+                    <li class="menu-item {{ request()->routeIs('menu.*') ? 'active open' : '' }}">
+                        <a href="javascript:void(0);" class="menu-link menu-toggle">
+                            <i class="menu-icon tf-icons bx bx-food-menu"></i>
+                            <div>Menu</div>
+                        </a>
+                        <ul class="menu-sub">
+                            <li class="menu-item {{ request()->routeIs('menu.categories.*') ? 'active' : '' }}">
+                                <a href="{{ route('menu.categories.index') }}" class="menu-link">
+                                    <div>Catégories</div>
+                                </a>
+                            </li>
+                            <li class="menu-item {{ request()->routeIs('menu.products.*') ? 'active' : '' }}">
+                                <a href="{{ route('menu.products.index') }}" class="menu-link">
+                                    <div>Produits</div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Commandes -->
+                    <li class="menu-item {{ request()->routeIs('commandes.*') ? 'active' : '' }}">
+                        <a href="{{ route('commandes.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-receipt"></i>
+                            <div>Commandes</div>
+                        </a>
+                    </li>
+                    
+                    <!-- Caisse -->
+                    <li class="menu-item {{ request()->routeIs('caisse.*') ? 'active' : '' }}">
+                        <a href="{{ route('caisse.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-dollar-circle"></i>
+                            <div>Caisse</div>
+                        </a>
+                    </li>
+                    
+                    <!-- Paiements -->
+                    <li class="menu-item {{ request()->routeIs('caisse.*') ? 'active' : '' }}">
+                        <a href="{{ route('caisse.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-credit-card"></i>
+                            <div>Paiements</div>
+                        </a>
+                    </li>
+                    
+                    @can('view_roles')
+                    <!-- Rôles & Permissions -->
+                    <li class="menu-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+                        <a href="{{ route('roles.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-shield"></i>
+                            <div>Rôles & Permissions</div>
+                        </a>
+                    </li>
+                    @endcan
+                    
+                    @can('view_users')
+                    <!-- Utilisateurs -->
+                    <li class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                        <a href="{{ route('users.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-user"></i>
+                            <div>Utilisateurs</div>
+                        </a>
+                    </li>
+                    @endcan
+                    
+                    @can('view_customers')
+                    <!-- Clients -->
+                    <li class="menu-item {{ request()->routeIs('clients.*') ? 'active' : '' }}">
+                        <a href="{{ route('clients.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-group"></i>
+                            <div>Clients & Fidélité</div>
+                        </a>
+                    </li>
+                    @endcan
                 </ul>
             </aside>
             <!-- / Menu -->

@@ -2,177 +2,201 @@
 
 @section('title', 'Dashboard')
 
-@push('vendor-css')
-<link rel="stylesheet" href="{{ asset('assets/vendor/libs/apex-charts/apex-charts.css') }}" />
-@endpush
-
 @section('content')
 <div class="row">
+    <!-- Welcome Card -->
     <div class="col-lg-8 mb-4 order-0">
         <div class="card">
             <div class="d-flex align-items-end row">
                 <div class="col-sm-7">
                     <div class="card-body">
-                        <h5 class="card-title text-primary">Welcome! 🎉</h5>
+                        <h5 class="card-title text-primary">Bienvenue {{ Auth::user()->name }} ! 🎉</h5>
                         <p class="mb-4">
-                            You have done <span class="fw-bold">72%</span> more sales today. Check your new badge in your profile.
+                            Vous avez <span class="fw-bold">{{ $commandesJour }}</span> commandes aujourd'hui.
+                            Chiffre d'affaires : <span class="fw-bold">{{ number_format($caJour, 0, ',', ' ') }} FCFA</span>
                         </p>
-                        <a href="javascript:;" class="btn btn-sm btn-outline-primary">View Badges</a>
+                        <a href="{{ route('commandes.index') }}" class="btn btn-sm btn-outline-primary">Voir les commandes</a>
                     </div>
                 </div>
                 <div class="col-sm-5 text-center text-sm-left">
                     <div class="card-body pb-0 px-0 px-md-4">
-                        <img src="{{ asset('assets/img/illustrations/man-with-laptop-light.png') }}" height="140" alt="View Badge User" data-app-dark-img="illustrations/man-with-laptop-dark.png" data-app-light-img="illustrations/man-with-laptop-light.png" />
+                        <img src="{{ asset('assets/img/illustrations/man-with-laptop-light.png') }}" height="140" alt="Welcome" />
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Quick Stats -->
     <div class="col-lg-4 col-md-4 order-1">
         <div class="row">
             <div class="col-lg-6 col-md-12 col-6 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between">
-                            <div class="avatar flex-shrink-0">
-                                <img src="{{ asset('assets/img/icons/unicons/chart-success.png') }}" alt="chart success" class="rounded" />
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOpt3" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt3">
-                                    <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                        <span class="fw-semibold d-block mb-1">Profit</span>
-                        <h3 class="card-title mb-2">$12,628</h3>
-                        <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +72.80%</small>
+                        <span class="fw-semibold d-block mb-1">Tables Occupées</span>
+                        <h3 class="card-title mb-2">{{ $tablesOccupees }}/{{ $tablesTotal }}</h3>
+                        <small class="text-success fw-semibold">
+                            <i class="bx bx-check-circle"></i> {{ $tablesLibres }} libres
+                        </small>
                     </div>
                 </div>
             </div>
             <div class="col-lg-6 col-md-12 col-6 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between">
-                            <div class="avatar flex-shrink-0">
-                                <img src="{{ asset('assets/img/icons/unicons/wallet-info.png') }}" alt="Credit Card" class="rounded" />
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOpt6" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt6">
-                                    <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                        <span>Sales</span>
-                        <h3 class="card-title text-nowrap mb-1">$4,679</h3>
-                        <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +28.42%</small>
+                        <span class="fw-semibold d-block mb-1">Commandes</span>
+                        <h3 class="card-title text-nowrap mb-1">{{ $commandesJour }}</h3>
+                        <small class="text-warning fw-semibold">
+                            <i class="bx bx-time"></i> {{ $commandesEnCours }} en cours
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Total Revenue -->
-    <div class="col-12 col-lg-8 order-2 order-md-3 order-lg-2 mb-4">
+</div>
+
+<div class="row">
+    <!-- CA Today & Week -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2">Chiffre d'Affaires</h5>
+                    <small class="text-muted">Aujourd'hui</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex flex-column align-items-center gap-1">
+                        <h2 class="mb-2">{{ number_format($caJour, 0, ',', ' ') }}</h2>
+                        <span>FCFA</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-muted">
+                    <div class="d-flex justify-content-between">
+                        <span>Cette semaine :</span>
+                        <span class="fw-bold">{{ number_format($caSemaine, 0, ',', ' ') }} FCFA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Produits Populaires -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="card-title m-0 me-2">Produits Populaires</h5>
+                <small class="text-muted">Aujourd'hui</small>
+            </div>
+            <div class="card-body">
+                <ul class="p-0 m-0">
+                    @forelse($produitsPopulaires as $produit)
+                        <li class="d-flex mb-3 pb-1">
+                            <div class="avatar flex-shrink-0 me-3">
+                                <span class="avatar-initial rounded bg-label-primary">
+                                    <i class="bx bx-food-menu"></i>
+                                </span>
+                            </div>
+                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">{{ $produit->name }}</h6>
+                                    <small class="text-muted">{{ $produit->total_quantite }} vendus</small>
+                                </div>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="text-center text-muted py-3">Aucune vente aujourd'hui</li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dernières Commandes -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="card-title m-0 me-2">Dernières Commandes</h5>
+            </div>
+            <div class="card-body">
+                <ul class="p-0 m-0">
+                    @forelse($dernieresCommandes as $commande)
+                        <li class="d-flex mb-3 pb-1">
+                            <div class="avatar flex-shrink-0 me-3">
+                                <span class="avatar-initial rounded bg-label-info">
+                                    {{ $commande->table->numero }}
+                                </span>
+                            </div>
+                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">{{ $commande->table->numero }}</h6>
+                                    <small class="text-muted">{{ $commande->created_at->diffForHumans() }}</small>
+                                </div>
+                                <div class="user-progress">
+                                    @switch($commande->statut->value)
+                                        @case('attente')
+                                            <span class="badge bg-warning">En attente</span>
+                                            @break
+                                        @case('preparation')
+                                            <span class="badge bg-info">Préparation</span>
+                                            @break
+                                        @case('servie')
+                                            <span class="badge bg-primary">Servie</span>
+                                            @break
+                                        @case('terminee')
+                                            <span class="badge bg-success">Terminée</span>
+                                            @break
+                                        @case('annulee')
+                                            <span class="badge bg-danger">Annulée</span>
+                                            @break
+                                    @endswitch
+                                </div>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="text-center text-muted py-3">Aucune commande</li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
         <div class="card">
-            <div class="row row-bordered g-0">
-                <div class="col-md-8">
-                    <h5 class="card-header m-0 me-2 pb-3">Total Revenue</h5>
-                    <div id="totalRevenueChart" class="px-2"></div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card-body">
-                        <div class="text-center">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="growthReportId" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    2024
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="growthReportId">
-                                    <a class="dropdown-item" href="javascript:void(0);">2023</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">2022</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">2021</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="growthChart"></div>
-                    <div class="text-center fw-semibold pt-3 mb-2">62% Company Growth</div>
-                    <div class="d-flex px-xxl-4 px-lg-2 p-4 gap-xxl-3 gap-lg-1 gap-3 justify-content-between">
-                        <div class="d-flex">
-                            <div class="me-2">
-                                <span class="badge bg-label-primary p-2"><i class="bx bx-dollar text-primary"></i></span>
-                            </div>
-                            <div class="d-flex flex-column">
-                                <small>2024</small>
-                                <h6 class="mb-0">$32.5k</h6>
-                            </div>
-                        </div>
-                        <div class="d-flex">
-                            <div class="me-2">
-                                <span class="badge bg-label-info p-2"><i class="bx bx-wallet text-info"></i></span>
-                            </div>
-                            <div class="d-flex flex-column">
-                                <small>2023</small>
-                                <h6 class="mb-0">$41.2k</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="card-header">
+                <h5 class="card-title mb-0">Actions Rapides</h5>
             </div>
-        </div>
-    </div>
-    <!--/ Total Revenue -->
-    <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
-        <div class="row">
-            <div class="col-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between">
-                            <div class="avatar flex-shrink-0">
-                                <img src="{{ asset('assets/img/icons/unicons/paypal.png') }}" alt="Credit Card" class="rounded" />
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOpt4" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt4">
-                                    <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                        <span class="d-block mb-1">Payments</span>
-                        <h3 class="card-title text-nowrap mb-2">$2,456</h3>
-                        <small class="text-danger fw-semibold"><i class="bx bx-down-arrow-alt"></i> -14.82%</small>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ route('tables.index') }}" class="btn btn-outline-primary btn-lg w-100">
+                            <i class="bx bx-grid-alt mb-2 d-block" style="font-size: 2rem;"></i>
+                            Tables
+                        </a>
                     </div>
-                </div>
-            </div>
-            <div class="col-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between">
-                            <div class="avatar flex-shrink-0">
-                                <img src="{{ asset('assets/img/icons/unicons/cc-primary.png') }}" alt="Credit Card" class="rounded" />
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOpt1" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="cardOpt1">
-                                    <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                        <span class="fw-semibold d-block mb-1">Transactions</span>
-                        <h3 class="card-title mb-2">$14,857</h3>
-                        <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +28.14%</small>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ route('commandes.create') }}" class="btn btn-outline-success btn-lg w-100">
+                            <i class="bx bx-plus-circle mb-2 d-block" style="font-size: 2rem;"></i>
+                            Nouvelle Commande
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ route('caisse.index') }}" class="btn btn-outline-warning btn-lg w-100">
+                            <i class="bx bx-dollar-circle mb-2 d-block" style="font-size: 2rem;"></i>
+                            Caisse
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ route('menu.products.index') }}" class="btn btn-outline-info btn-lg w-100">
+                            <i class="bx bx-food-menu mb-2 d-block" style="font-size: 2rem;"></i>
+                            Menu
+                        </a>
                     </div>
                 </div>
             </div>
@@ -180,12 +204,3 @@
     </div>
 </div>
 @endsection
-
-@push('vendor-js')
-<script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
-@endpush
-
-@push('page-js')
-<script src="{{ asset('assets/js/dashboards-analytics.js') }}"></script>
-@endpush
-

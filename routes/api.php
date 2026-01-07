@@ -1,0 +1,162 @@
+<?php
+
+use App\Http\Controllers\Api\AuthController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Les routes API pour l'application mobile et les intégrations externes
+|
+*/
+
+// Routes publiques (pas d'authentification requise)
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
+// Routes protégées (authentification requise)
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Authentification
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout-all', [AuthController::class, 'logoutAll']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
+    });
+    
+    // Route de test (à supprimer en production)
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    
+    // ==========================================
+    // TABLES - Gestion des tables du restaurant
+    // ==========================================
+    Route::prefix('tables')->group(function () {
+        // Liste des tables (visible par tous les utilisateurs authentifiés)
+        Route::get('/', [App\Http\Controllers\Api\TableController::class, 'index']);
+        
+        // Tables libres
+        Route::get('/libres', [App\Http\Controllers\Api\TableController::class, 'libres']);
+        
+        // Détails d'une table
+        Route::get('/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
+        
+        // QR Code d'une table
+        Route::get('/{id}/qrcode', [App\Http\Controllers\Api\TableController::class, 'getQRCode']);
+        
+        // Changer le statut (serveur, caissier, manager, admin)
+        Route::patch('/{id}/statut', [App\Http\Controllers\Api\TableController::class, 'updateStatut'])
+            ->middleware('permission:update_table_status');
+        
+        // CRUD complet (manager, admin uniquement)
+        Route::middleware('permission:manage_tables')->group(function () {
+            Route::post('/', [App\Http\Controllers\Api\TableController::class, 'store']);
+            Route::put('/{id}', [App\Http\Controllers\Api\TableController::class, 'update']);
+            Route::patch('/{id}', [App\Http\Controllers\Api\TableController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\TableController::class, 'destroy']);
+            Route::post('/{id}/regenerate-qrcode', [App\Http\Controllers\Api\TableController::class, 'regenerateQRCode']);
+        });
+    });
+    
+    // ==========================================
+    // CATEGORIES - Gestion des catégories
+    // ==========================================
+    Route::prefix('categories')->group(function () {
+        // Liste et détails (tous)
+        Route::get('/', [App\Http\Controllers\Api\CategoryController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'show']);
+        
+        // CRUD (manager, admin)
+        Route::middleware('permission:manage_menu')->group(function () {
+            Route::post('/', [App\Http\Controllers\Api\CategoryController::class, 'store']);
+            Route::put('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'update']);
+            Route::patch('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'destroy']);
+        });
+    });
+    
+    // ==========================================
+    // PRODUITS - Gestion du menu
+    // ==========================================
+    Route::prefix('produits')->group(function () {
+        // Liste et détails (tous)
+        Route::get('/', [App\Http\Controllers\Api\ProductController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\ProductController::class, 'show']);
+        
+        // CRUD (manager, admin)
+        Route::middleware('permission:manage_menu')->group(function () {
+            Route::post('/', [App\Http\Controllers\Api\ProductController::class, 'store']);
+            Route::put('/{id}', [App\Http\Controllers\Api\ProductController::class, 'update']);
+            Route::patch('/{id}', [App\Http\Controllers\Api\ProductController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\ProductController::class, 'destroy']);
+        });
+    });
+    
+    // ==========================================
+    // COMMANDES - Gestion des commandes
+    // ==========================================
+    Route::prefix('commandes')->group(function () {
+        // Liste et détails
+        Route::get('/', [App\Http\Controllers\Api\CommandeController::class, 'index'])
+            ->middleware('permission:view_orders');
+        Route::get('/{id}', [App\Http\Controllers\Api\CommandeController::class, 'show'])
+            ->middleware('permission:view_orders');
+        
+        // Créer une commande (serveur, caissier, manager, admin)
+        Route::post('/', [App\Http\Controllers\Api\CommandeController::class, 'store'])
+            ->middleware('permission:create_orders');
+        
+        // Modifier une commande (serveur, manager, admin)
+        Route::middleware('permission:update_orders')->group(function () {
+            Route::put('/{id}', [App\Http\Controllers\Api\CommandeController::class, 'update']);
+            Route::patch('/{id}', [App\Http\Controllers\Api\CommandeController::class, 'update']);
+            Route::post('/{id}/produits', [App\Http\Controllers\Api\CommandeController::class, 'addProduit']);
+            Route::delete('/{id}/produits/{produitId}', [App\Http\Controllers\Api\CommandeController::class, 'removeProduit']);
+        });
+        
+        // Changer le statut (serveur, caissier, manager, admin)
+        Route::patch('/{id}/statut', [App\Http\Controllers\Api\CommandeController::class, 'updateStatut'])
+            ->middleware('permission:update_order_status');
+    });
+    
+    // ==========================================
+    // PAIEMENTS - Gestion des paiements & factures
+    // ==========================================
+    Route::prefix('paiements')->group(function () {
+        // Liste et détails (caissier, manager, admin)
+        Route::get('/', [App\Http\Controllers\Api\PaiementController::class, 'index'])
+            ->middleware('permission:view_cashier');
+        Route::get('/{paiement}', [App\Http\Controllers\Api\PaiementController::class, 'show'])
+            ->middleware('permission:view_cashier');
+        
+        // Initier un paiement (caissier, manager, admin)
+        Route::post('/', [App\Http\Controllers\Api\PaiementController::class, 'store'])
+            ->middleware('permission:process_payments');
+        
+        // Workflow rapide paiement espèces (caissier, manager, admin)
+        Route::post('/especes', [App\Http\Controllers\Api\PaiementController::class, 'payerEspeces'])
+            ->middleware('permission:process_payments');
+        
+        // Valider un paiement mobile money (caissier, manager, admin)
+        Route::patch('/{paiement}/valider', [App\Http\Controllers\Api\PaiementController::class, 'valider'])
+            ->middleware('permission:process_payments');
+        
+        // Marquer comme échoué (caissier, manager, admin)
+        Route::patch('/{paiement}/echouer', [App\Http\Controllers\Api\PaiementController::class, 'echouer'])
+            ->middleware('permission:process_payments');
+        
+        // Annuler un paiement (caissier, manager, admin)
+        Route::delete('/{paiement}', [App\Http\Controllers\Api\PaiementController::class, 'annuler'])
+            ->middleware('permission:process_payments');
+        
+        // Télécharger la facture
+        Route::get('/{paiement}/facture', [App\Http\Controllers\Api\PaiementController::class, 'telechargerFacture'])
+            ->middleware('permission:generate_invoices');
+    });
+});

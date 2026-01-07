@@ -1,0 +1,128 @@
+@extends('layouts.app')
+@section('title', 'Modifier Commande')
+@section('content')
+<div class="card">
+    <div class="card-header"><h5>✏️ Modifier Commande #{{ $commande->id }}</h5></div>
+    <div class="card-body">
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        
+        <form action="{{ route('commandes.update', $commande) }}" method="POST">
+            @csrf
+            @method('PUT')
+            
+            <div class="mb-3">
+                <label class="form-label">Table</label>
+                <input type="text" class="form-control" value="{{ $commande->table->numero }}" disabled>
+                <small class="text-muted">La table ne peut pas être modifiée</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2">{{ old('notes', $commande->notes) }}</textarea>
+            </div>
+            
+            <hr>
+            
+            <h6 class="mb-3">Produits</h6>
+            
+            <div id="produitsContainer">
+                @php
+                    $existingProduits = old('produits', $commande->produits->map(function($p) {
+                        return [
+                            'id' => $p->id,
+                            'quantite' => $p->pivot->quantite,
+                            'notes' => $p->pivot->notes
+                        ];
+                    })->toArray());
+                @endphp
+                
+                @foreach($existingProduits as $index => $item)
+                <div class="row mb-2 produit-row">
+                    <div class="col-md-5">
+                        <select name="produits[{{ $index }}][id]" class="form-select" required>
+                            <option value="">Sélectionner un produit</option>
+                            @foreach($produits as $produit)
+                                <option value="{{ $produit->id }}" {{ $item['id'] == $produit->id ? 'selected' : '' }}>
+                                    {{ $produit->nom }} - {{ number_format($produit->prix, 0, ',', ' ') }} FCFA
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="produits[{{ $index }}][quantite]" class="form-control" placeholder="Qté" min="1" value="{{ $item['quantite'] }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" name="produits[{{ $index }}][notes]" class="form-control" placeholder="Notes (optionnel)" value="{{ $item['notes'] ?? '' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeProduit(this)"><i class="bx bx-trash"></i></button>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            
+            <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="addProduit()">
+                <i class="bx bx-plus"></i> Ajouter un produit
+            </button>
+            
+            <hr>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{{ route('commandes.show', $commande) }}" class="btn btn-secondary">Retour</a>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let produitIndex = {{ count($existingProduits) }};
+
+function addProduit() {
+    const container = document.getElementById('produitsContainer');
+    const newRow = document.createElement('div');
+    newRow.className = 'row mb-2 produit-row';
+    newRow.innerHTML = `
+        <div class="col-md-5">
+            <select name="produits[${produitIndex}][id]" class="form-select" required>
+                <option value="">Sélectionner un produit</option>
+                @foreach($produits as $produit)
+                    <option value="{{ $produit->id }}">
+                        {{ $produit->nom }} - {{ number_format($produit->prix, 0, ',', ' ') }} FCFA
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
+            <input type="number" name="produits[${produitIndex}][quantite]" class="form-control" placeholder="Qté" min="1" value="1" required>
+        </div>
+        <div class="col-md-4">
+            <input type="text" name="produits[${produitIndex}][notes]" class="form-control" placeholder="Notes (optionnel)">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeProduit(this)"><i class="bx bx-trash"></i></button>
+        </div>
+    `;
+    container.appendChild(newRow);
+    produitIndex++;
+}
+
+function removeProduit(button) {
+    const container = document.getElementById('produitsContainer');
+    if (container.children.length > 1) {
+        button.closest('.produit-row').remove();
+    } else {
+        alert('Vous devez avoir au moins un produit dans la commande.');
+    }
+}
+</script>
+@endsection
+
