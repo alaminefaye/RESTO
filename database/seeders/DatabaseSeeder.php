@@ -18,6 +18,15 @@ class DatabaseSeeder extends Seeder
         // Créer les rôles et permissions avec Spatie
         $this->call(SpatieRolesPermissionsSeeder::class);
         
+        // Créer les catégories
+        $this->call(CategorySeeder::class);
+        
+        // Créer les produits (après les catégories car ils en dépendent)
+        $this->call(ProductSeeder::class);
+        
+        // Créer les tables
+        $this->call(TableSeeder::class);
+        
         // Créer ou récupérer un utilisateur admin
         $admin = User::firstOrCreate(
             ['email' => 'admin@admin.com'],
