@@ -15,17 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer les permissions en premier
-        $this->call(PermissionSeeder::class);
-        
-        // Créer les rôles et leur attribuer les permissions
-        $this->call(RoleSeeder::class);
+        // Créer les rôles et permissions avec Spatie
+        $this->call(SpatieRolesPermissionsSeeder::class);
         
         // Créer ou récupérer un utilisateur admin
         $admin = User::firstOrCreate(
             ['email' => 'admin@admin.com'],
             [
-            'name' => 'Admin User',
+                'name' => 'Admin User',
                 'password' => bcrypt('password'),
             ]
         );
@@ -62,7 +59,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'serveur@resto.com'],
             [
                 'name' => 'Serveur User',
-            'password' => bcrypt('password'),
+                'password' => bcrypt('password'),
             ]
         );
         if (!$serveur->hasRole('serveur')) {
