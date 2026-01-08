@@ -38,6 +38,9 @@ class _QrScanScreenState extends State<QrScanScreen> {
     // ou http://.../tables/{id} ou juste l'ID
     final qrData = barcode.rawValue!;
     
+    // Log pour le débogage
+    debugPrint('QR Code scanné: $qrData');
+    
     try {
       int? tableId;
       
@@ -75,8 +78,11 @@ class _QrScanScreenState extends State<QrScanScreen> {
       }
 
       if (table == null) {
-        throw Exception('Table introuvable. Vérifiez le QR code.');
+        debugPrint('Table non trouvée. ID recherché: $tableId, QR Data: $qrData');
+        throw Exception('Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData');
       }
+      
+      debugPrint('Table trouvée: ${table.numero} (ID: ${table.id})');
 
       if (!mounted) return;
 
