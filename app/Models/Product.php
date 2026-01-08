@@ -60,6 +60,17 @@ class Product extends Model
             ? substr($this->image, 7) // Enlève "public/"
             : $this->image;
 
+        // Si on est dans un contexte API ou JSON, retourner une URL complète
+        // Sinon retourner un chemin relatif pour le web
+        $request = request();
+        if ($request && ($request->is('api/*') || $request->expectsJson())) {
+            // Utiliser l'URL de la requête actuelle au lieu de config('app.url')
+            // Cela permet de fonctionner en local et en production
+            $scheme = $request->getScheme();
+            $host = $request->getHttpHost();
+            return $scheme . '://' . $host . '/storage/' . $path;
+        }
+
         // Retourner un chemin relatif qui fonctionne avec le domaine actuel
         // Le navigateur résoudra automatiquement l'URL complète
         return '/storage/' . $path;

@@ -76,12 +76,21 @@ class Product {
   }
 
   String get imageUrl {
-    if (image == null) return '';
-    // Si l'image est déjà une URL complète, la retourner telle quelle
+    if (image == null || image!.isEmpty) return '';
+    
+    // Si l'image est déjà une URL complète (commence par http:// ou https://), la retourner telle quelle
     if (image!.startsWith('http://') || image!.startsWith('https://')) {
       return image!;
     }
-    // Sinon, construire l'URL avec l'URL de base du serveur depuis ApiConfig
+    
+    // Si l'image commence par /storage/, c'est un chemin relatif, ajouter le domaine
+    if (image!.startsWith('/storage/')) {
+      // Enlever le / au début pour éviter le double /
+      final path = image!.substring(1);
+      return '${ApiConfig.serverBaseUrl}/$path';
+    }
+    
+    // Sinon, c'est probablement juste le nom du fichier, construire le chemin complet
     return '${ApiConfig.serverBaseUrl}/storage/$image';
   }
 }
