@@ -23,6 +23,17 @@ Route::get('/tables/{id}/menu', [App\Http\Controllers\Api\TableController::class
 // Endpoint pour récupérer les détails d'une table (public pour le scan QR)
 Route::get('/tables/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
 
+// Menu public - Consultation du menu (catégories et produits) sans authentification
+Route::prefix('categories')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\CategoryController::class, 'index']);
+    Route::get('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'show']);
+});
+
+Route::prefix('produits')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\ProductController::class, 'index']);
+    Route::get('/{id}', [App\Http\Controllers\Api\ProductController::class, 'show']);
+});
+
 // Routes protégées (authentification requise)
 Route::middleware('auth:sanctum')->group(function () {
     
@@ -70,14 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // ==========================================
-    // CATEGORIES - Gestion des catégories
+    // CATEGORIES - Gestion des catégories (CRUD protégé)
+    // Note: GET est public (défini ci-dessus)
     // ==========================================
     Route::prefix('categories')->group(function () {
-        // Liste et détails (tous)
-        Route::get('/', [App\Http\Controllers\Api\CategoryController::class, 'index']);
-        Route::get('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'show']);
-        
-        // CRUD (manager, admin)
+        // CRUD (manager, admin uniquement)
         Route::middleware('permission:manage_menu')->group(function () {
             Route::post('/', [App\Http\Controllers\Api\CategoryController::class, 'store']);
             Route::put('/{id}', [App\Http\Controllers\Api\CategoryController::class, 'update']);
@@ -87,14 +95,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // ==========================================
-    // PRODUITS - Gestion du menu
+    // PRODUITS - Gestion du menu (CRUD protégé)
+    // Note: GET est public (défini ci-dessus)
     // ==========================================
     Route::prefix('produits')->group(function () {
-        // Liste et détails (tous)
-        Route::get('/', [App\Http\Controllers\Api\ProductController::class, 'index']);
-        Route::get('/{id}', [App\Http\Controllers\Api\ProductController::class, 'show']);
-        
-        // CRUD (manager, admin)
+        // CRUD (manager, admin uniquement)
         Route::middleware('permission:manage_menu')->group(function () {
             Route::post('/', [App\Http\Controllers\Api\ProductController::class, 'store']);
             Route::put('/{id}', [App\Http\Controllers\Api\ProductController::class, 'update']);

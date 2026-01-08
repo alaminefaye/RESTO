@@ -15,6 +15,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   final TableService _tableService = TableService();
   final MobileScannerController _controller = MobileScannerController();
   bool _isProcessing = false;
+  String? _lastScannedQr; // Pour éviter de scanner le même QR plusieurs fois
 
   @override
   void dispose() {
@@ -29,16 +30,25 @@ class _QrScanScreenState extends State<QrScanScreen> {
     final barcode = capture.barcodes.first;
     if (barcode.rawValue == null) return;
 
+    final qrData = barcode.rawValue!.trim();
+    
+    // Vérifier si c'est le même QR code qu'on vient de scanner
+    if (_lastScannedQr == qrData) {
+      debugPrint('QR code déjà traité, ignoré: $qrData');
+      return;
+    }
+
+    // Arrêter immédiatement le scanner pour éviter les scans multiples
+    _controller.stop();
+    
     setState(() {
       _isProcessing = true;
+      _lastScannedQr = qrData;
     });
 
     // Le QR code devrait contenir l'URL ou l'ID de la table
     // Format attendu: http://.../api/tables/{id}/menu
     // ou http://.../tables/{id} ou juste l'ID
-    final qrData = barcode.rawValue!;
-    
-    // Log pour le débogage
     debugPrint('=== SCAN QR CODE ===');
     debugPrint('QR Code scanné (raw): $qrData');
     
@@ -50,46 +60,42 @@ class _QrScanScreenState extends State<QrScanScreen> {
       debugPrint('URL nettoyée: $cleanUrl');
       
       // Extraire l'ID de table de l'URL avec plusieurs méthodes
-      // Méthode 1: Format standard /api/tables/{id}/menu
+      // Méthode 1: Format standard /api/tables/{id}/menu ou /tables/{id}
       final tablesPattern = RegExp(r'/tables/(\d+)');
       final tablesMatch = tablesPattern.firstMatch(cleanUrl);
-      if (tablesMatch != null) {
+      if (tablesMatch != null && tablesMatch.group(1) != null) {
         tableId = int.tryParse(tablesMatch.group(1)!);
         debugPrint('ID extrait via /tables/ : $tableId');
       }
       
-      // Méthode 2: Format alternatif /table/{id}
+      // Méthode 2: Format alternatif /table/{id} (sans 's')
       if (tableId == null) {
         final tablePattern = RegExp(r'/table/(\d+)');
         final tableMatch = tablePattern.firstMatch(cleanUrl);
-        if (tableMatch != null) {
+        if (tableMatch != null && tableMatch.group(1) != null) {
           tableId = int.tryParse(tableMatch.group(1)!);
           debugPrint('ID extrait via /table/ : $tableId');
         }
       }
       
-      // Méthode 3: Essayer de parser directement comme ID
-      if (tableId == null) {
+      // Méthode 3: Essayer de parser directement comme ID (si le QR contient juste un nombre)
+      if (tableId == null && RegExp(r'^\d+$').hasMatch(cleanUrl)) {
         tableId = int.tryParse(cleanUrl);
         if (tableId != null) {
           debugPrint('ID extrait directement: $tableId');
-        }
-      }
-      
-      // Si toujours pas d'ID, essayer d'extraire n'importe quel nombre de l'URL
-      if (tableId == null) {
-        final numberPattern = RegExp(r'\d+');
-        final numberMatch = numberPattern.firstMatch(cleanUrl);
-        if (numberMatch != null) {
-          tableId = int.tryParse(numberMatch.group(0)!);
-          debugPrint('ID extrait via pattern nombre: $tableId');
         }
       }
 
       debugPrint('ID final extrait: $tableId');
       
       if (tableId == null) {
-        throw Exception('Impossible d\'extraire l\'ID de la table depuis le QR code: $qrData');
+        // Redémarrer le scanner pour permettre un nouveau scan
+        _controller.start();
+        setState(() {
+          _isProcessing = false;
+          _lastScannedQr = null;
+        });
+        throw Exception('Impossible d\'extraire l\'ID de la table depuis le QR code. Format attendu: http://.../api/tables/{id}/menu');
       }
 
       // Si on a un ID, récupérer la table
@@ -115,6 +121,12 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       if (table == null) {
         debugPrint('Table null après toutes les tentatives. ID recherché: $tableId');
+        // Redémarrer le scanner pour permettre un nouveau scan
+        _controller.start();
+        setState(() {
+          _isProcessing = false;
+          _lastScannedQr = null;
+        });
         throw Exception('Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData');
       }
       
@@ -128,7 +140,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       if (!mounted) return;
 
-      // Naviguer vers les détails de la table
+      // Naviguer vers les détails de la table (le scanner reste arrêté car on change d'écran)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -138,12 +150,30 @@ class _QrScanScreenState extends State<QrScanScreen> {
     } catch (e) {
       if (!mounted) return;
       
+      // Extraire le message d'erreur de manière plus claire
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
+          content: Text('Erreur: $errorMessage'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
+      
+      // Redémarrer le scanner après un délai pour permettre un nouveau scan
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && !_isProcessing) {
+          _controller.start();
+          setState(() {
+            _lastScannedQr = null;
+          });
+        }
+      });
+      
       setState(() {
         _isProcessing = false;
       });
