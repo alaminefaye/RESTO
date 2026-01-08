@@ -64,11 +64,23 @@ class Product extends Model
         // Sinon retourner un chemin relatif pour le web
         $request = request();
         if ($request && ($request->is('api/*') || $request->expectsJson())) {
-            // Utiliser l'URL de la requête actuelle au lieu de config('app.url')
-            // Cela permet de fonctionner en local et en production
-            $scheme = $request->getScheme();
+            // Pour l'API, utiliser le domaine de la requête actuelle pour le développement local
+            // ou config('app.url') pour la production
             $host = $request->getHttpHost();
-            return $scheme . '://' . $host . '/storage/' . $path;
+            $scheme = $request->getScheme();
+            
+            // Si c'est un domaine local (localhost, 127.0.0.1, ou .test, .local), utiliser le domaine de la requête
+            // Sinon utiliser config('app.url') pour la cohérence en production
+            if (str_contains($host, 'localhost') || 
+                str_contains($host, '127.0.0.1') || 
+                str_contains($host, '.test') || 
+                str_contains($host, '.local')) {
+                return $scheme . '://' . $host . '/storage/' . $path;
+            }
+            
+            // Pour la production, utiliser config('app.url')
+            $baseUrl = rtrim(config('app.url'), '/');
+            return $baseUrl . '/storage/' . $path;
         }
 
         // Retourner un chemin relatif qui fonctionne avec le domaine actuel
