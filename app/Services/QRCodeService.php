@@ -17,8 +17,15 @@ class QRCodeService
     public function generateForTable(Table $table): string
     {
         // URL qui sera encodée dans le QR Code
-        // Format: {app_url}/api/table/{id}/menu
-        $url = config('app.url') . '/api/tables/' . $table->id . '/menu';
+        // Utiliser dynamiquement APP_URL depuis la configuration
+        $baseUrl = config('app.url');
+        
+        // S'assurer qu'il n'y a pas de trailing slash
+        $baseUrl = rtrim($baseUrl, '/');
+        
+        // Format: {app_url}/api/tables/{id}/menu
+        // Le mobile extraira l'ID de la table depuis l'URL
+        $url = $baseUrl . '/api/tables/' . $table->id . '/menu';
 
         // Nom du fichier
         $filename = 'qr-codes/table-' . $table->numero . '-' . $table->id . '.svg';
@@ -44,7 +51,9 @@ class QRCodeService
      */
     public function generatePngForTable(Table $table): string
     {
-        $url = config('app.url') . '/api/tables/' . $table->id . '/menu';
+        // Utiliser dynamiquement APP_URL depuis la configuration
+        $baseUrl = rtrim(config('app.url'), '/');
+        $url = $baseUrl . '/api/tables/' . $table->id . '/menu';
         $filename = 'qr-codes/table-' . $table->numero . '-' . $table->id . '.png';
 
         $qrCode = QrCode::format('png')
@@ -115,7 +124,9 @@ class QRCodeService
      */
     public function getQRCodeContent(Table $table): string
     {
-        $url = config('app.url') . '/api/tables/' . $table->id . '/menu';
+        // Utiliser dynamiquement APP_URL depuis la configuration
+        $baseUrl = rtrim(config('app.url'), '/');
+        $url = $baseUrl . '/api/tables/' . $table->id . '/menu';
 
         return QrCode::format('svg')
             ->size(300)

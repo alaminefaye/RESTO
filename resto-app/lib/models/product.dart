@@ -1,3 +1,5 @@
+import '../config/api_config.dart';
+
 class Product {
   final int id;
   final String nom;
@@ -27,7 +29,8 @@ class Product {
       nom: json['nom'] as String,
       description: json['description'] as String?,
       prix: (json['prix'] as num).toDouble(),
-      image: json['image'] as String?,
+      // L'API retourne image_url directement, sinon utiliser image
+      image: json['image_url'] as String? ?? json['image'] as String?,
       categorieId: json['categorie_id'] as int,
       categorieNom: json['categorie']?['nom'] as String?,
       disponible: json['disponible'] == 1 || json['disponible'] == true,
@@ -50,8 +53,12 @@ class Product {
 
   String get imageUrl {
     if (image == null) return '';
-    if (image!.startsWith('http')) return image!;
-    return 'http://resto.test/storage/$image';
+    // Si l'image est déjà une URL complète, la retourner telle quelle
+    if (image!.startsWith('http://') || image!.startsWith('https://')) {
+      return image!;
+    }
+    // Sinon, construire l'URL avec l'URL de base du serveur depuis ApiConfig
+    return '${ApiConfig.serverBaseUrl}/storage/$image';
   }
 }
 

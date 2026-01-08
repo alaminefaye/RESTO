@@ -18,6 +18,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Endpoint public pour le menu via QR code (accessible sans authentification)
+Route::get('/tables/{id}/menu', [App\Http\Controllers\Api\TableController::class, 'getMenuForTable']);
+
 // Routes protégées (authentification requise)
 Route::middleware('auth:sanctum')->group(function () {
     

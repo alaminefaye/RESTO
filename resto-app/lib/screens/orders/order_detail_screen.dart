@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../config/api_config.dart';
 import '../../models/order.dart';
 import '../../services/order_service.dart';
 import '../../utils/formatters.dart';
@@ -240,7 +241,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ? CachedNetworkImage(
                     imageUrl: item.image!.startsWith('http')
                         ? item.image!
-                        : 'http://restaurant.universaltechnologiesafrica.com/storage/${item.image}',
+                        : '${ApiConfig.serverBaseUrl}/storage/${item.image}',
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,

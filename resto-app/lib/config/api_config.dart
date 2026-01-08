@@ -1,7 +1,15 @@
 class ApiConfig {
-  // TODO: Remplacer par l'URL de votre serveur
+  // URL de base de l'API - Changez cette URL selon votre serveur de déploiement
+  // Pour la production: http://restaurant.universaltechnologiesafrica.com/api
+  // Pour le développement local: http://localhost:8000/api
+  // Pour un autre serveur: http://votre-domaine.com/api
   static const String baseUrl =
       'http://restaurant.universaltechnologiesafrica.com/api';
+
+  // URL de base du serveur (sans /api)
+  static String get serverBaseUrl {
+    return baseUrl.replaceAll('/api', '');
+  }
 
   // Endpoints
   static const String login = '/auth/login';

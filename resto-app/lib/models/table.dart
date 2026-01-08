@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/api_config.dart';
 
 enum TableType {
   simple,
@@ -134,7 +135,8 @@ class Table {
   String get qrCodeUrl {
     if (qrCode == null) return '';
     if (qrCode!.startsWith('http')) return qrCode!;
-    return 'http://restaurant.universaltechnologiesafrica.com/storage/$qrCode';
+    // Utiliser l'URL de base depuis ApiConfig pour être flexible
+    return '${ApiConfig.serverBaseUrl}/storage/$qrCode';
   }
 }
 

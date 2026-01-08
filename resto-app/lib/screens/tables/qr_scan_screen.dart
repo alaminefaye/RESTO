@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../models/table.dart' as models;
 import '../../services/table_service.dart';
 import 'table_detail_screen.dart';
 
@@ -33,50 +34,57 @@ class _QrScanScreenState extends State<QrScanScreen> {
     });
 
     // Le QR code devrait contenir l'URL ou l'ID de la table
-    // Format attendu: http://.../table/{numero} ou juste le numéro
+    // Format attendu: http://.../api/tables/{id}/menu
+    // ou http://.../tables/{id} ou juste l'ID
     final qrData = barcode.rawValue!;
     
     try {
-      // Extraire le numéro de table de l'URL ou utiliser directement
-      int? tableNumber;
+      int? tableId;
       
-      if (qrData.contains('/table/')) {
+      // Extraire l'ID de table de l'URL
+      if (qrData.contains('/tables/')) {
+        // Format: http://.../api/tables/{id}/menu ou /tables/{id}
+        final parts = qrData.split('/tables/');
+        if (parts.length > 1) {
+          // Prendre la première partie après /tables/
+          final idPart = parts[1].split('/').first.split('?').first;
+          tableId = int.tryParse(idPart);
+        }
+      } else if (qrData.contains('/table/')) {
+        // Format alternatif: /table/{id}
         final parts = qrData.split('/table/');
         if (parts.length > 1) {
-          tableNumber = int.tryParse(parts[1].split('?').first);
+          final idPart = parts[1].split('/').first.split('?').first;
+          tableId = int.tryParse(idPart);
         }
       } else {
-        // Essayer de parser directement comme numéro
-        tableNumber = int.tryParse(qrData);
+        // Essayer de parser directement comme ID
+        tableId = int.tryParse(qrData);
       }
 
-      if (tableNumber == null) {
-        throw Exception('Numéro de table invalide');
+      // Si on a un ID, récupérer la table par ID
+      models.Table? table;
+      if (tableId != null) {
+        table = await _tableService.getTable(tableId);
+      } else {
+        // Sinon, essayer de récupérer par numéro
+        final tableNumber = int.tryParse(qrData);
+        if (tableNumber != null) {
+          table = await _tableService.getTableByNumber(tableNumber);
+        }
       }
-
-      // Récupérer la table
-      final table = await _tableService.getTableByNumber(tableNumber);
-
-      if (!mounted) return;
 
       if (table == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Table non trouvée'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isProcessing = false;
-        });
-        return;
+        throw Exception('Table introuvable. Vérifiez le QR code.');
       }
+
+      if (!mounted) return;
 
       // Naviguer vers les détails de la table
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => TableDetailScreen(table: table),
+          builder: (_) => TableDetailScreen(table: table!),
         ),
       );
     } catch (e) {

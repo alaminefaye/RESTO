@@ -237,6 +237,35 @@ class TableController extends Controller
     }
 
     /**
+     * Obtenir les informations de la table pour le menu (endpoint du QR code)
+     * GET /api/tables/{id}/menu
+     */
+    public function getMenuForTable($id)
+    {
+        $table = Table::find($id);
+
+        if (!$table) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Table non trouvée',
+            ], 404);
+        }
+
+        // Retourner les informations de la table pour que l'application mobile
+        // puisse charger le menu avec le table_id
+        return response()->json([
+            'success' => true,
+            'message' => 'Table trouvée',
+            'data' => [
+                'table' => $this->formatTable($table),
+                'menu_url' => config('app.url') . '/api/produits?categorie_id=',
+                'table_id' => $table->id,
+                'table_numero' => $table->numero,
+            ],
+        ]);
+    }
+
+    /**
      * Régénérer le QR Code d'une table
      * POST /api/tables/{id}/regenerate-qrcode
      */
