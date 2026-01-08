@@ -47,11 +47,26 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success'] == true) {
       // La navigation sera gérée automatiquement par AuthWrapper
       // Pas besoin de naviguer manuellement
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Connexion réussie !'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
+      String errorMessage = result['message'] ?? 'Erreur de connexion';
+      
+      // Nettoyer le message d'erreur pour l'utilisateur
+      if (errorMessage.contains('DioException')) {
+        errorMessage = 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Erreur de connexion'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -161,6 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : const Text('Se connecter'),
                   ),
+                  
                 ],
               ),
             ),

@@ -14,14 +14,27 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Gérer les rôles qui peuvent être soit une liste de strings, soit une liste d'objets
+    List<String> rolesList = [];
+    if (json['roles'] != null) {
+      final roles = json['roles'];
+      if (roles is List) {
+        for (var role in roles) {
+          if (role is String) {
+            rolesList.add(role);
+          } else if (role is Map && role['name'] != null) {
+            rolesList.add(role['name'] as String);
+          }
+        }
+      }
+    }
+    
     return User(
       id: json['id'] as int,
-      name: json['name'] as String,
+      name: json['name'] as String? ?? '',
       email: json['email'] as String,
       phone: json['phone'] as String?,
-      roles: json['roles'] != null
-          ? List<String>.from(json['roles'])
-          : [],
+      roles: rolesList,
     );
   }
 

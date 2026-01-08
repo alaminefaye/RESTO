@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('numero')->unique(); // Numéro de la table (ex: T1, T2, VIP1, etc.)
             $table->enum('type', ['simple', 'vip', 'espace_jeux'])->default('simple');
             $table->integer('capacite')->default(4); // Nombre de places
-            $table->enum('statut', ['libre', 'occupee', 'reservee', 'en_paiement'])->default('libre');
+            $table->enum('statut', ['libre', 'occupee', 'reservee', 'paiement'])->default('libre');
             $table->decimal('prix', 10, 2)->nullable(); // Prix pour tables VIP (fixe)
             $table->decimal('prix_par_heure', 10, 2)->nullable(); // Prix par heure pour espaces jeux
             $table->string('qr_code')->nullable(); // Chemin vers le fichier QR Code

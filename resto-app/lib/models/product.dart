@@ -51,7 +51,7 @@ class Product {
   String get imageUrl {
     if (image == null) return '';
     if (image!.startsWith('http')) return image!;
-    return 'http://restaurant.universaltechnologiesafrica.com/storage/$image';
+    return 'http://resto.test/storage/$image';
   }
 }
 

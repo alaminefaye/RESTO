@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import '../models/user.dart';
 import '../config/api_config.dart';
 import 'api_service.dart';
@@ -27,21 +28,66 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = response.data;
         _token = data['token'] as String?;
-        _currentUser = User.fromJson(data['user'] as Map<String, dynamic>);
+        
+        if (data['user'] != null) {
+          _currentUser = User.fromJson(data['user'] as Map<String, dynamic>);
+        }
         
         // Sauvegarder le token
         if (_token != null) {
           await _saveToken(_token!);
           _apiService.setToken(_token);
+          notifyListeners();
+          return {'success': true, 'user': _currentUser};
+        } else {
+          return {'success': false, 'message': 'Token non reçu du serveur'};
         }
-
-        notifyListeners();
-        return {'success': true, 'user': _currentUser};
       } else {
-        return {'success': false, 'message': 'Erreur de connexion'};
+        return {'success': false, 'message': 'Erreur de connexion (${response.statusCode})'};
       }
+    } on DioException catch (e) {
+      // Gérer les erreurs HTTP spécifiques
+      String message = 'Erreur de connexion';
+      
+      if (e.response != null) {
+        // Erreur avec réponse du serveur
+        final data = e.response?.data;
+        if (data is Map) {
+          // Erreur de validation Laravel
+          if (data['message'] != null) {
+            message = data['message'] as String;
+          } else if (data['errors'] != null) {
+            final errors = data['errors'] as Map;
+            if (errors['email'] != null) {
+              message = (errors['email'] as List).first as String;
+            } else if (errors['password'] != null) {
+              message = (errors['password'] as List).first as String;
+            }
+          }
+        }
+        
+        if (e.response?.statusCode == 422) {
+          message = message.isNotEmpty ? message : 'Les identifiants fournis sont incorrects.';
+        } else if (e.response?.statusCode == 401) {
+          message = 'Email ou mot de passe incorrect';
+        } else if (e.response?.statusCode == 403) {
+          message = 'Accès refusé';
+        } else if (e.response?.statusCode == 404) {
+          message = 'Service non trouvé';
+        } else if (e.response?.statusCode == 500) {
+          message = 'Erreur serveur. Veuillez réessayer plus tard.';
+        }
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.receiveTimeout ||
+                 e.type == DioExceptionType.sendTimeout) {
+        message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+      }
+      
+      return {'success': false, 'message': message};
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
+      return {'success': false, 'message': 'Erreur inattendue: ${e.toString()}'};
     }
   }
 
@@ -67,7 +113,7 @@ class AuthService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     
-    if (token != null) {
+    if (token != null && token.isNotEmpty) {
       _token = token;
       _apiService.setToken(token);
       
@@ -75,12 +121,23 @@ class AuthService extends ChangeNotifier {
       try {
         final response = await _apiService.get(ApiConfig.me);
         if (response.statusCode == 200) {
-          _currentUser = User.fromJson(response.data['data'] as Map<String, dynamic>);
-          notifyListeners();
-          return true;
+          final data = response.data;
+          // L'endpoint /me retourne 'user' directement, pas dans 'data'
+          if (data['user'] != null) {
+            _currentUser = User.fromJson(data['user'] as Map<String, dynamic>);
+            notifyListeners();
+            return true;
+          }
         }
-      } catch (e) {
+        // Si la réponse n'est pas valide, supprimer le token
         await _clearToken();
+        return false;
+      } catch (e) {
+        // Token invalide ou expiré, supprimer
+        await _clearToken();
+        _token = null;
+        _currentUser = null;
+        _apiService.setToken(null);
         return false;
       }
     }

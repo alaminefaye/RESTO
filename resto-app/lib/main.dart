@@ -22,45 +22,9 @@ class RestoApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Resto App',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData.dark().copyWith(
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFF1A1A1A),
-          colorScheme: ColorScheme.dark(
-            primary: const Color(0xFFFF4444), // Rouge moderne
-            secondary: const Color(0xFFFF6666),
-            surface: const Color(0xFF2A2A2A),
-            background: const Color(0xFF1A1A1A),
-            onPrimary: Colors.white,
-            onSecondary: Colors.white,
-            onSurface: Colors.white,
-            onBackground: Colors.white,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF1A1A1A),
-            elevation: 0,
-            iconTheme: IconThemeData(color: Colors.white),
-            titleTextStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          cardTheme: CardThemeData(
-            color: const Color(0xFF2A2A2A),
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: const Color(0xFF2A2A2A),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            hintStyle: TextStyle(color: Colors.grey[400]),
-          ),
         ),
         home: const AuthWrapper(),
       ),
