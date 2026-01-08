@@ -78,6 +78,20 @@ class Table extends Model
     }
 
     /**
+     * Changer le statut de la table
+     */
+    public function changerStatut(string $nouveauStatut): bool
+    {
+        try {
+            $statut = TableStatus::from($nouveauStatut);
+            $this->statut = $statut;
+            return $this->save();
+        } catch (\ValueError $e) {
+            return false;
+        }
+    }
+
+    /**
      * Accessor pour l'URL complète du QR Code
      */
     public function getQrCodeUrlAttribute(): ?string
@@ -90,11 +104,44 @@ class Table extends Model
     }
 
     /**
+     * Accessor pour le type affiché
+     */
+    public function getTypeDisplayAttribute(): string
+    {
+        return match($this->type) {
+            TableType::Simple => 'Simple',
+            TableType::VIP => 'VIP',
+            TableType::EspaceJeux => 'Espace Jeux',
+        };
+    }
+
+    /**
+     * Accessor pour le statut affiché
+     */
+    public function getStatutDisplayAttribute(): string
+    {
+        return match($this->statut) {
+            TableStatus::Libre => 'Libre',
+            TableStatus::Occupee => 'Occupée',
+            TableStatus::Reservee => 'Réservée',
+            TableStatus::EnPaiement => 'En Paiement',
+        };
+    }
+
+    /**
      * Scope pour les tables actives
      */
     public function scopeActives($query)
     {
         return $query->where('actif', true);
+    }
+
+    /**
+     * Scope pour les tables libres
+     */
+    public function scopeLibres($query)
+    {
+        return $query->where('statut', TableStatus::Libre->value);
     }
 
     /**

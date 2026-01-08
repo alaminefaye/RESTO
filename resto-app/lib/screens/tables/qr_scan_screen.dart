@@ -65,10 +65,17 @@ class _QrScanScreenState extends State<QrScanScreen> {
         tableId = int.tryParse(qrData);
       }
 
-      // Si on a un ID, récupérer la table par ID
+      // Si on a un ID, récupérer la table
       models.Table? table;
       if (tableId != null) {
-        table = await _tableService.getTable(tableId);
+        // Essayer d'abord via l'endpoint menu (pour le scan QR)
+        try {
+          table = await _tableService.getTableFromMenuEndpoint(tableId);
+        } catch (e) {
+          debugPrint('Erreur avec endpoint menu, essai avec endpoint standard: $e');
+          // Fallback: essayer avec l'endpoint standard
+          table = await _tableService.getTable(tableId);
+        }
       } else {
         // Sinon, essayer de récupérer par numéro
         final tableNumber = int.tryParse(qrData);

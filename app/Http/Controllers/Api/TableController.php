@@ -124,7 +124,7 @@ class TableController extends Controller
             'numero' => 'sometimes|string|unique:tables,numero,' . $id,
             'type' => 'sometimes|in:simple,vip,espace_jeux',
             'capacite' => 'sometimes|integer|min:1',
-            'statut' => 'sometimes|in:libre,occupee,reservee,paiement',
+            'statut' => 'sometimes|in:libre,occupee,reservee,en_paiement',
             'prix' => 'nullable|numeric|min:0',
             'prix_par_heure' => 'nullable|numeric|min:0',
             'actif' => 'boolean',
@@ -195,7 +195,7 @@ class TableController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'statut' => 'required|in:libre,occupee,reservee,paiement',
+            'statut' => 'required|in:libre,occupee,reservee,en_paiement',
         ]);
 
         if ($validator->fails()) {
@@ -242,27 +242,36 @@ class TableController extends Controller
      */
     public function getMenuForTable($id)
     {
-        $table = Table::find($id);
+        try {
+            $table = Table::find($id);
 
-        if (!$table) {
+            if (!$table) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Table introuvable (ID: ' . $id . '). Vérifiez le QR code scanné.',
+                    'error' => 'Table not found',
+                ], 404);
+            }
+
+            // Retourner les informations de la table pour que l'application mobile
+            // puisse charger le menu avec le table_id
+            return response()->json([
+                'success' => true,
+                'message' => 'Table trouvée',
+                'data' => [
+                    'table' => $this->formatTable($table),
+                    'menu_url' => config('app.url') . '/api/produits?categorie_id=',
+                    'table_id' => $table->id,
+                    'table_numero' => $table->numero,
+                ],
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Table non trouvée',
-            ], 404);
+                'message' => 'Erreur: ' . $e->getMessage(),
+                'error' => 'Exception: Table introuvable (ID: ' . $id . '). Vérifiez le QR code scanné: ' . request()->url(),
+            ], 500);
         }
-
-        // Retourner les informations de la table pour que l'application mobile
-        // puisse charger le menu avec le table_id
-        return response()->json([
-            'success' => true,
-            'message' => 'Table trouvée',
-            'data' => [
-                'table' => $this->formatTable($table),
-                'menu_url' => config('app.url') . '/api/produits?categorie_id=',
-                'table_id' => $table->id,
-                'table_numero' => $table->numero,
-            ],
-        ]);
     }
 
     /**
@@ -314,18 +323,18 @@ class TableController extends Controller
         return [
             'id' => $table->id,
             'numero' => $table->numero,
-            'type' => $table->type,
+            'type' => $table->type->value ?? $table->type,
             'type_display' => $table->type_display,
             'capacite' => $table->capacite,
-            'statut' => $table->statut,
+            'statut' => $table->statut->value ?? $table->statut,
             'statut_display' => $table->statut_display,
             'prix' => $table->prix,
             'prix_par_heure' => $table->prix_par_heure,
             'qr_code' => $table->qr_code,
             'qr_code_url' => $table->qr_code_url,
             'actif' => $table->actif,
-            'created_at' => $table->created_at,
-            'updated_at' => $table->updated_at,
+            'created_at' => $table->created_at?->toISOString(),
+            'updated_at' => $table->updated_at?->toISOString(),
         ];
     }
 }

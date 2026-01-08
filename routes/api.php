@@ -18,8 +18,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// Endpoint public pour le menu via QR code (accessible sans authentification)
+// Endpoints publics pour le menu via QR code (accessibles sans authentification)
 Route::get('/tables/{id}/menu', [App\Http\Controllers\Api\TableController::class, 'getMenuForTable']);
+// Endpoint pour récupérer les détails d'une table (public pour le scan QR)
+Route::get('/tables/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
 
 // Routes protégées (authentification requise)
 Route::middleware('auth:sanctum')->group(function () {
@@ -47,8 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Tables libres
         Route::get('/libres', [App\Http\Controllers\Api\TableController::class, 'libres']);
         
-        // Détails d'une table
-        Route::get('/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
+        // Détails d'une table - déjà défini en public ci-dessus pour le scan QR
+        // Route::get('/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
         
         // QR Code d'une table
         Route::get('/{id}/qrcode', [App\Http\Controllers\Api\TableController::class, 'getQRCode']);
