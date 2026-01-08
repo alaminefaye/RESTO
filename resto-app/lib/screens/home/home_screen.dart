@@ -8,6 +8,7 @@ import '../../services/menu_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/formatters.dart';
 import '../menu/products_screen.dart';
+import '../menu/product_detail_screen.dart';
 import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -359,9 +360,9 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
-        childAspectRatio: 0.70, // Ajusté pour éviter le débordement
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.78, // Augmenté pour des cartes plus compactes
       ),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
@@ -374,22 +375,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildProductCard(Product product) {
     return GestureDetector(
       onTap: () {
-        // Navigation vers les détails du produit ou ajout direct au panier
-        _addToCart(product);
+        // Navigation vers les détails du produit
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
+        );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image du produit
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image du produit (sans bordure)
+          Expanded(
+            flex: 3,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Hero(
+                tag: 'product_${product.id}',
                 child: product.imageUrl.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: product.imageUrl,
@@ -401,75 +404,117 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey[800],
-                          child: const Icon(Icons.restaurant_menu, color: Colors.grey),
+                          child: const Icon(Icons.restaurant_menu, color: Colors.grey, size: 36),
                         ),
                       )
                     : Container(
                         color: Colors.grey[800],
                         child: const Icon(Icons.restaurant_menu,
-                            size: 48, color: Colors.grey),
+                            size: 36, color: Colors.grey),
                       ),
               ),
             ),
+          ),
+          const SizedBox(height: 6),
 
-            // Info du produit
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(10.0), // Réduit de 12 à 10
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween, // Espacement équilibré
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      product.nom,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14, // Réduit de 16 à 14
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+          // Info du produit
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.nom,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 4), // Réduit de 6 à 4
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.orange, size: 14), // Réduit de 16 à 14
-                        const SizedBox(width: 3), // Réduit de 4 à 3
-                        Flexible(
-                          child: Text(
-                            '4.8(163)',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 11), // Réduit de 12 à 11
-                            overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.orange, size: 12),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          '4.8(163)',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 10),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.access_time, color: Colors.grey, size: 12),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          '20 min',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 10),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          Formatters.formatCurrency(product.prix),
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Bouton Ajouter - stoppe la propagation du tap
+                      AbsorbPointer(
+                        absorbing: false,
+                        child: GestureDetector(
+                          onTap: product.disponible
+                              ? () {
+                                  _addToCart(product);
+                                }
+                              : null,
+                          behavior: HitTestBehavior.opaque,
+                          onTapDown: (_) {
+                            // Capture le tapDown pour stopper la propagation
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: product.disponible
+                                  ? Colors.orange
+                                  : Colors.grey[700],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.add_shopping_cart,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8), // Réduit de 12 à 8
-                        const Icon(Icons.access_time, color: Colors.grey, size: 14), // Réduit de 16 à 14
-                        const SizedBox(width: 3), // Réduit de 4 à 3
-                        Flexible(
-                          child: Text(
-                            '20 min',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 11), // Réduit de 12 à 11
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      Formatters.formatCurrency(product.prix),
-                      style: const TextStyle(
-                        color: Colors.orange,
-                        fontSize: 16, // Réduit de 18 à 16
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
