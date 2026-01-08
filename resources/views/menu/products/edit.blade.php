@@ -47,7 +47,13 @@
                 <label class="form-label">Image</label>
                 @if($product->image)
                     <div class="mb-2">
-                        <img src="{{ $product->image_url }}" alt="{{ $product->nom }}" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px;">
+                        <img src="{{ $product->image_url }}" 
+                             alt="{{ $product->nom }}" 
+                             style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px;"
+                             onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="width: 150px; height: 150px; background: #e9ecef; border-radius: 8px; display: none; align-items: center; justify-content: center;">
+                            <i class="bx bx-image" style="font-size: 48px; color: #adb5bd;"></i>
+                        </div>
                     </div>
                 @endif
                 <input type="file" name="image" class="form-control" accept="image/*">

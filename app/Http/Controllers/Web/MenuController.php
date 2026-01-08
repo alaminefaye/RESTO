@@ -97,7 +97,7 @@ class MenuController extends Controller
         $validated['actif'] = $request->has('actif');
         
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('public/produits');
+            $validated['image'] = $request->file('image')->store('produits', 'public');
         }
         
         Product::create($validated);
@@ -128,9 +128,13 @@ class MenuController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image
             if ($product->image) {
-                Storage::delete($product->image);
+                // Supprimer le préfixe "public/" si présent
+                $oldPath = str_starts_with($product->image, 'public/') 
+                    ? substr($product->image, 7) 
+                    : $product->image;
+                Storage::disk('public')->delete($oldPath);
             }
-            $validated['image'] = $request->file('image')->store('public/produits');
+            $validated['image'] = $request->file('image')->store('produits', 'public');
         }
         
         $product->update($validated);
@@ -143,7 +147,11 @@ class MenuController extends Controller
     {
         // Delete image
         if ($product->image) {
-            Storage::delete($product->image);
+            // Supprimer le préfixe "public/" si présent
+            $imagePath = str_starts_with($product->image, 'public/') 
+                ? substr($product->image, 7) 
+                : $product->image;
+            Storage::disk('public')->delete($imagePath);
         }
         
         $product->delete();

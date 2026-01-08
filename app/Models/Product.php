@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -54,7 +55,14 @@ class Product extends Model
             return null;
         }
 
-        return asset('storage/' . $this->image);
+        // Si le chemin commence par "public/", on l'enlève
+        $path = str_starts_with($this->image, 'public/') 
+            ? substr($this->image, 7) // Enlève "public/"
+            : $this->image;
+
+        // Retourner un chemin relatif qui fonctionne avec le domaine actuel
+        // Le navigateur résoudra automatiquement l'URL complète
+        return '/storage/' . $path;
     }
 
     /**

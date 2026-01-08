@@ -63,7 +63,13 @@
                     <tr>
                         <td>
                             @if($product->image)
-                                <img src="{{ $product->image_url }}" alt="{{ $product->nom }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                                <img src="{{ $product->image_url }}" 
+                                     alt="{{ $product->nom }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="width: 50px; height: 50px; background: #e9ecef; border-radius: 8px; display: none; align-items: center; justify-content: center;">
+                                    <i class="bx bx-image" style="font-size: 24px; color: #adb5bd;"></i>
+                                </div>
                             @else
                                 <div style="width: 50px; height: 50px; background: #e9ecef; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                                     <i class="bx bx-image" style="font-size: 24px; color: #adb5bd;"></i>

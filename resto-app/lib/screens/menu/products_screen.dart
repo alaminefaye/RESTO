@@ -295,6 +295,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 padding: const EdgeInsets.all(8.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       product.nom,
@@ -311,9 +313,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.bold,
+                                        fontSize: 14, // Ajouté une taille de police
                                       ),
                                     ),
-                                    const Spacer(),
                                     Row(
                                       children: [
                                         if (product.disponible)

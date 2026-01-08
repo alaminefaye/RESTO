@@ -16,13 +16,30 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) {
+    // Fonction helper pour convertir en int de manière sécurisée
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      if (value is double) return value.toInt();
+      return null;
+    }
+
+    // Fonction helper pour convertir en bool de manière sécurisée
+    bool parseBool(dynamic value) {
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) return value.toLowerCase() == 'true' || value == '1';
+      return false;
+    }
+
     return Category(
-      id: json['id'] as int,
-      nom: json['nom'] as String,
+      id: parseInt(json['id']) ?? 0,
+      nom: json['nom'] as String? ?? '',
       description: json['description'] as String?,
-      ordre: json['ordre'] as int? ?? 0,
-      actif: json['actif'] == 1 || json['actif'] == true,
-      produitsCount: json['produits_count'] as int?,
+      ordre: parseInt(json['ordre']) ?? 0,
+      actif: parseBool(json['actif']),
+      produitsCount: parseInt(json['produits_count']),
     );
   }
 
