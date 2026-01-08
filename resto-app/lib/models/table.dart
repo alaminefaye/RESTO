@@ -81,7 +81,7 @@ enum TableStatus {
 
 class Table {
   final int id;
-  final int numero;
+  final String numero; // Changé de int à String car peut être "T1", "VIP1", etc.
   final TableType type;
   final int capacite;
   final double? prix;
@@ -103,9 +103,19 @@ class Table {
   });
 
   factory Table.fromJson(Map<String, dynamic> json) {
+    // Gérer numero qui peut être int ou String
+    String numeroStr;
+    if (json['numero'] is int) {
+      numeroStr = json['numero'].toString();
+    } else if (json['numero'] is String) {
+      numeroStr = json['numero'] as String;
+    } else {
+      numeroStr = json['numero'].toString();
+    }
+    
     return Table(
       id: json['id'] as int,
-      numero: json['numero'] as int,
+      numero: numeroStr,
       type: TableType.fromString(json['type'] as String),
       capacite: json['capacite'] as int,
       prix: json['prix'] != null ? (json['prix'] as num).toDouble() : null,

@@ -6,13 +6,14 @@ import 'api_service.dart';
 class TableService {
   final ApiService _apiService = ApiService();
 
-  // Récupérer une table par numéro
-  Future<models.Table?> getTableByNumber(int numero) async {
+  // Récupérer une table par numéro (peut être String comme "T1" ou int comme 1)
+  Future<models.Table?> getTableByNumber(dynamic numero) async {
     try {
       // Récupérer toutes les tables et filtrer par numéro
       final tables = await getTables();
+      final numeroStr = numero.toString();
       for (var table in tables) {
-        if (table.numero == numero) {
+        if (table.numero.toString() == numeroStr) {
           return table;
         }
       }
@@ -57,7 +58,11 @@ class TableService {
   // Récupérer une table via l'endpoint menu (pour le scan QR)
   Future<models.Table?> getTableFromMenuEndpoint(int id) async {
     try {
+      print('Appel API: ${ApiConfig.tables}/$id/menu');
       final response = await _apiService.get('${ApiConfig.tables}/$id/menu');
+      print('Réponse reçue - Status: ${response.statusCode}');
+      print('Réponse data: ${response.data}');
+      
       if (response.statusCode == 200) {
         final data = response.data;
         // L'API retourne les données dans 'data.table'
@@ -65,19 +70,38 @@ class TableService {
         if (data is Map) {
           if (data.containsKey('data') && data['data'] is Map) {
             final dataMap = data['data'] as Map<String, dynamic>;
+            print('Data map keys: ${dataMap.keys}');
             if (dataMap.containsKey('table')) {
               tableData = dataMap['table'] as Map<String, dynamic>;
+              print('Table data trouvée dans data.table');
             } else {
-              // Fallback: utiliser directement data['data']
+              // Fallback: utiliser directement data['data'] si c'est déjà la table
+              print('Pas de clé table, utilisation directe de data');
               tableData = dataMap;
             }
           } else if (data.containsKey('table')) {
             tableData = data['table'] as Map<String, dynamic>;
+            print('Table data trouvée dans data.table (niveau racine)');
+          } else if (data.containsKey('success') && data['success'] == true) {
+            // Si la réponse est directement la table
+            tableData = data as Map<String, dynamic>;
+            print('Utilisation directe de la réponse comme table data');
           }
         }
         
         if (tableData != null) {
-          return models.Table.fromJson(tableData);
+          print('Parsing de la table avec data: $tableData');
+          try {
+            final table = models.Table.fromJson(tableData);
+            print('Table parsée avec succès: ${table.numero} (ID: ${table.id})');
+            return table;
+          } catch (e) {
+            print('Erreur lors du parsing de la table: $e');
+            print('Données qui ont causé l\'erreur: $tableData');
+            rethrow;
+          }
+        } else {
+          print('Aucune donnée de table trouvée dans la réponse');
         }
       }
       print('Erreur lors de la récupération de la table $id via menu: Status ${response.statusCode}');
