@@ -72,9 +72,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
     });
 
     try {
+      debugPrint('Chargement des produits pour catégorie: ${widget.categoryId}');
       final products = await _menuService.getProducts(
         categoryId: widget.categoryId,
       );
+      debugPrint('Produits chargés: ${products.length}');
 
       if (mounted) {
         setState(() {
@@ -82,17 +84,31 @@ class _ProductsScreenState extends State<ProductsScreen> {
           _filteredProducts = products;
           _isLoading = false;
         });
+        
+        // Afficher un message si aucun produit
+        if (products.isEmpty && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(widget.categoryId != null 
+                ? 'Aucun produit disponible dans cette catégorie'
+                : 'Aucun produit disponible'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Erreur lors du chargement des produits: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('Erreur lors du chargement: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

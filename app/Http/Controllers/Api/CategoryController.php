@@ -18,10 +18,17 @@ class CategoryController extends Controller
         $categories = Category::actives()
             ->ordered()
             ->withCount('produits')
-            ->with(['produitsDisponibles' => function($query) {
-                $query->orderBy('nom');
-            }])
-            ->get();
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'nom' => $category->nom,
+                    'description' => $category->description,
+                    'ordre' => $category->ordre,
+                    'actif' => $category->actif,
+                    'produits_count' => $category->produits_count,
+                ];
+            });
 
         return response()->json([
             'success' => true,

@@ -30,19 +30,39 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     try {
       final categories = await _menuService.getCategories();
+      debugPrint('Catégories chargées: ${categories.length}');
 
       if (mounted) {
         setState(() {
           _categories = categories;
           _isLoading = false;
         });
+        
+        // Afficher un message si aucune catégorie
+        if (categories.isEmpty && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Aucune catégorie disponible'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Erreur lors du chargement des catégories: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     }
   }
