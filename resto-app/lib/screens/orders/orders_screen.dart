@@ -51,11 +51,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes Commandes'),
-      ),
+      backgroundColor: Colors.grey[900],
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.orange,
+              ),
+            )
           : _orders.isEmpty
               ? Center(
                   child: Column(
@@ -63,24 +65,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     children: [
                       Icon(
                         Icons.receipt_long_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
+                        size: 80,
+                        color: Colors.grey[600],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Text(
                         'Aucune commande',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Vos commandes apparaîtront ici',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadOrders,
+                  color: Colors.orange,
+                  backgroundColor: Colors.grey[800],
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _orders.length,
@@ -94,8 +105,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildOrderCard(BuildContext context, Order order) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -105,6 +120,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
           );
         },
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -113,63 +129,94 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Commande #${order.id}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.receipt_long,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Commande #${order.id}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 10,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(order.statut).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _getStatusColor(order.statut),
-                        width: 2,
-                      ),
+                      color: _getStatusColor(order.statut),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Text(
                       order.statut.displayName,
-                      style: TextStyle(
-                        color: _getStatusColor(order.statut),
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              if (order.table != null)
-                Row(
-                  children: [
-                    Icon(Icons.table_restaurant, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Table ${order.table!.numero}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${order.produits?.length ?? 0} article(s)',
-                    style: TextStyle(color: Colors.grey[600]),
+                  Row(
+                    children: [
+                      if (order.table != null) ...[
+                        Icon(
+                          Icons.table_restaurant,
+                          size: 14,
+                          color: Colors.grey[500],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Table ${order.table!.numero}',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Icon(
+                        Icons.shopping_bag,
+                        size: 14,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${order.produits?.length ?? 0} article(s)',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     Formatters.formatCurrency(order.montantTotal),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 18,
+                      color: Colors.orange,
                     ),
                   ),
                 ],
@@ -192,15 +239,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Color _getStatusColor(OrderStatus status) {
     switch (status) {
       case OrderStatus.attente:
-        return Colors.orange;
+        return Colors.orange.shade700;
       case OrderStatus.preparation:
-        return Colors.blue;
+        return Colors.blue.shade700;
       case OrderStatus.servie:
-        return Colors.purple;
+        return Colors.purple.shade700;
       case OrderStatus.terminee:
-        return Colors.green;
+        return Colors.green.shade700;
       case OrderStatus.annulee:
-        return Colors.red;
+        return Colors.red.shade700;
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../tables/qr_scan_screen.dart';
 import '../orders/cart_screen.dart';
+import '../orders/orders_screen.dart';
 import '../profile/profile_screen.dart';
 import '../home/home_screen.dart';
 import '../favorites/favorites_screen.dart';
@@ -11,21 +12,34 @@ import '../../models/favorites.dart';
 import '../../services/auth_service.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final int? initialIndex;
+  
+  const MenuScreen({super.key, this.initialIndex});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
+// Widget pour naviguer directement vers les commandes
+class MenuScreenWithOrders extends MenuScreen {
+  const MenuScreenWithOrders({super.key}) : super(initialIndex: 2);
+}
+
 class _MenuScreenState extends State<MenuScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex ?? 0;
+  }
 
   List<Widget> _buildScreens(BuildContext context) {
     final favorites = Provider.of<Favorites>(context, listen: false);
     return [
       const HomeScreen(), // Index 0 - Accueil
       FavoritesScreen(key: ValueKey('favorites_${favorites.count}')), // Index 1 - Favoris avec clé unique
-      const SizedBox.shrink(), // Index 2 - Non utilisé
+      const OrdersScreen(), // Index 2 - Commandes
       const CartScreen(tableId: null), // Index 3 - Panier
       const ProfileScreen(), // Index 4 - Profil
     ];
@@ -42,15 +56,17 @@ class _MenuScreenState extends State<MenuScreen> {
             title: Text(
               _currentIndex == 1
                   ? 'Favoris'
-                  : _currentIndex == 3
-                      ? 'Panier'
-                      : _currentIndex == 4
-                          ? 'Mon Profil'
-                          : 'Resto App',
+                  : _currentIndex == 2
+                      ? 'Mes Commandes'
+                      : _currentIndex == 3
+                          ? 'Panier'
+                          : _currentIndex == 4
+                              ? 'Mon Profil'
+                              : 'Resto App',
               style: const TextStyle(color: Colors.white),
             ),
-            actions: _currentIndex == 1
-                ? [] // Pas d'actions pour la page favoris
+            actions: _currentIndex == 1 || _currentIndex == 2
+                ? [] // Pas d'actions pour la page favoris et commandes
                 : _currentIndex == 4
                     ? [
                         // Bouton de déconnexion pour la page profil
@@ -198,27 +214,31 @@ class _MenuScreenState extends State<MenuScreen> {
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    // Chariot (Panier)
-                    _buildNavItem(Icons.shopping_cart, _currentIndex == 3, () {
-                      setState(() => _currentIndex = 3);
-                    }, isCart: true),
-                    // Accueil
-                    _buildNavItem(Icons.home, _currentIndex == 0, () {
-                      setState(() => _currentIndex = 0);
-                    }, isHome: true),
-                    // Favoris
-                    _buildNavItem(Icons.favorite, _currentIndex == 1, () {
-                      setState(() => _currentIndex = 1);
-                    }),
-                    // Profil
-                    _buildNavItem(Icons.person, _currentIndex == 4, () {
-                      setState(() => _currentIndex = 4);
-                    }),
-                  ],
-                ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Chariot (Panier)
+                      _buildNavItem(Icons.shopping_cart, _currentIndex == 3, () {
+                        setState(() => _currentIndex = 3);
+                      }, isCart: true),
+                      // Accueil
+                      _buildNavItem(Icons.home, _currentIndex == 0, () {
+                        setState(() => _currentIndex = 0);
+                      }, isHome: true),
+                      // Commandes
+                      _buildNavItem(Icons.receipt_long, _currentIndex == 2, () {
+                        setState(() => _currentIndex = 2);
+                      }),
+                      // Favoris
+                      _buildNavItem(Icons.favorite, _currentIndex == 1, () {
+                        setState(() => _currentIndex = 1);
+                      }),
+                      // Profil
+                      _buildNavItem(Icons.person, _currentIndex == 4, () {
+                        setState(() => _currentIndex = 4);
+                      }),
+                    ],
+                  ),
               ),
             ),
           ),

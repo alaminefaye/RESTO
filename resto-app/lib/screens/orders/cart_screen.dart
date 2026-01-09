@@ -7,7 +7,7 @@ import '../../services/table_service.dart';
 import '../../models/table.dart' as models;
 import '../../utils/formatters.dart';
 import '../tables/qr_scan_screen.dart';
-import 'orders_screen.dart';
+import '../menu/menu_screen.dart';
 
 class CartScreen extends StatelessWidget {
   final int? tableId;
@@ -420,8 +420,11 @@ class CartScreen extends StatelessWidget {
     if (result['success'] == true) {
       cart.clear();
       if (context.mounted) {
+        // Naviguer vers MenuScreen avec l'onglet Commandes (index 2)
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const OrdersScreen()),
+          MaterialPageRoute(
+            builder: (_) => const MenuScreenWithOrders(),
+          ),
           (route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
