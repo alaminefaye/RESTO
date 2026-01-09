@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/product.dart';
 import '../../models/cart.dart';
+import '../../models/favorites.dart';
 import '../../utils/formatters.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -35,6 +36,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'Détails du produit',
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          Consumer<Favorites>(
+            builder: (context, favorites, _) {
+              final isFavorite = favorites.isFavorite(widget.product);
+              return IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : Colors.white,
+                ),
+                onPressed: () {
+                  favorites.toggleFavorite(widget.product);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isFavorite
+                            ? '${widget.product.nom} retiré des favoris'
+                            : '${widget.product.nom} ajouté aux favoris',
+                      ),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: Colors.grey[800],
+                    ),
+                  );
+                },
+                tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

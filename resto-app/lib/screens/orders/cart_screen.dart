@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/cart.dart';
 import '../../services/order_service.dart';
+import '../../services/table_service.dart';
+import '../../models/table.dart' as models;
 import '../../utils/formatters.dart';
+import '../tables/qr_scan_screen.dart';
 import 'orders_screen.dart';
 
 class CartScreen extends StatelessWidget {
@@ -18,56 +21,6 @@ class CartScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.grey[900],
-        elevation: 0,
-        title: const Text(
-          'Panier',
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if (cart.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: Colors.grey[800],
-                    title: const Text(
-                      'Vider le panier',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    content: const Text(
-                      'Êtes-vous sûr de vouloir vider votre panier ?',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Annuler',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          cart.clear();
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          'Vider',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
       body: cart.isEmpty
           ? Center(
               child: Column(
@@ -246,6 +199,8 @@ class CartScreen extends StatelessWidget {
     Cart cart,
     OrderService orderService,
   ) {
+    final currentTableId = cart.tableId ?? tableId;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -260,6 +215,101 @@ class CartScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Section sélection de table
+          if (currentTableId == null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.table_restaurant, color: Colors.orange, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Sélectionnez une table',
+                          style: TextStyle(
+                            color: Colors.orange[300],
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _scanQrCode(context, cart),
+                      icon: const Icon(Icons.qr_code_scanner, size: 20),
+                      label: const Text('Scanner le QR code'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.orange),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ] else ...[
+            // Afficher la table sélectionnée
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.table_restaurant, color: Colors.green, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FutureBuilder<models.Table?>(
+                      future: TableService().getTable(currentTableId),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          return Text(
+                            'Table ${snapshot.data!.numero}',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }
+                        return Text(
+                          'Table #$currentTableId',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _scanQrCode(context, cart),
+                    child: const Text(
+                      'Changer',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -285,7 +335,7 @@ class CartScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: (cart.tableId == null && tableId == null)
+              onPressed: currentTableId == null
                   ? () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -317,6 +367,28 @@ class CartScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _scanQrCode(BuildContext context, Cart cart) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const QrScanScreen(returnTableOnly: true),
+      ),
+    );
+
+    if (result != null && result is models.Table) {
+      cart.setTable(result.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Table ${result.numero} sélectionnée'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
 
   Future<void> _createOrder(
     BuildContext context,

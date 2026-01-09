@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'models/cart.dart';
+import 'models/favorites.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/menu/menu_screen.dart';
 
@@ -18,6 +19,7 @@ class RestoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => Cart()),
+        ChangeNotifierProvider(create: (_) => Favorites()),
       ],
       child: MaterialApp(
         title: 'Resto App',

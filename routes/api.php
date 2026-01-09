@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 
 // Routes publiques (pas d'authentification requise)
 Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
 });
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'table.dart' as models;
 
 enum OrderStatus {
@@ -89,31 +90,92 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
-    return Order(
-      id: json['id'] as int,
-      tableId: json['table_id'] as int,
-      userId: json['user_id'] as int?,
-      montantTotal: (json['montant_total'] as num).toDouble(),
-      statut: OrderStatus.fromString(json['statut'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-      produits: json['produits'] != null
-          ? (json['produits'] as List)
-              .map((p) => OrderItem(
-                    produitId: p['id'] as int,
-                    produitNom: p['nom'] as String,
-                    prix: (p['pivot']['prix'] as num).toDouble(),
-                    quantite: p['pivot']['quantite'] as int,
+    try {
+      // Parsing sécurisé des produits
+      List<OrderItem>? produits;
+      if (json['produits'] != null && json['produits'] is List) {
+        try {
+          produits = (json['produits'] as List)
+              .map((p) {
+                try {
+                  if (p is! Map) return null;
+                  
+                  final pivot = p['pivot'] as Map<String, dynamic>?;
+                  final produitId = p['id'] as int? ?? 0;
+                  final produitNom = p['nom'] as String? ?? 'Produit inconnu';
+                  
+                  // L'API formatCommande retourne prix_unitaire directement dans le produit
+                  // Mais peut aussi être dans pivot selon le contexte
+                  double prix = 0.0;
+                  if (p['prix_unitaire'] != null) {
+                    prix = (p['prix_unitaire'] as num).toDouble();
+                  } else if (pivot != null && pivot['prix_unitaire'] != null) {
+                    prix = (pivot['prix_unitaire'] as num).toDouble();
+                  } else if (pivot != null && pivot['prix'] != null) {
+                    prix = (pivot['prix'] as num).toDouble();
+                  } else if (p['prix'] != null) {
+                    prix = (p['prix'] as num).toDouble();
+                  }
+                  
+                  int quantite = 1;
+                  if (p['quantite'] != null) {
+                    quantite = (p['quantite'] as int? ?? 1);
+                  } else if (pivot != null && pivot['quantite'] != null) {
+                    quantite = (pivot['quantite'] as int? ?? 1);
+                  }
+                  
+                  return OrderItem(
+                    produitId: produitId,
+                    produitNom: produitNom,
+                    prix: prix,
+                    quantite: quantite,
                     image: p['image'] as String?,
-                  ))
-              .toList()
-          : null,
-      table: json['table'] != null
-          ? models.Table.fromJson(json['table'] as Map<String, dynamic>)
-          : null,
-    );
+                  );
+                } catch (e) {
+                  debugPrint('Erreur parsing produit: $e');
+                  debugPrint('Produit JSON: $p');
+                  return null;
+                }
+              })
+              .whereType<OrderItem>()
+              .toList();
+        } catch (e) {
+          debugPrint('Erreur parsing liste produits: $e');
+          produits = null;
+        }
+      }
+
+      // Parsing sécurisé de la table
+      models.Table? table;
+      if (json['table'] != null && json['table'] is Map) {
+        try {
+          table = models.Table.fromJson(json['table'] as Map<String, dynamic>);
+        } catch (e) {
+          debugPrint('Erreur parsing table: $e');
+          table = null;
+        }
+      }
+
+      return Order(
+        id: json['id'] as int? ?? 0,
+        tableId: json['table_id'] as int? ?? 0,
+        userId: json['user_id'] as int?,
+        montantTotal: ((json['montant_total'] ?? 0) as num).toDouble(),
+        statut: OrderStatus.fromString(json['statut'] as String? ?? 'attente'),
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+        produits: produits,
+        table: table,
+      );
+    } catch (e) {
+      debugPrint('Erreur parsing Order: $e');
+      debugPrint('JSON: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {

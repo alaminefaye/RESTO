@@ -14,6 +14,92 @@ class AuthService extends ChangeNotifier {
   String? get token => _token;
   bool get isAuthenticated => _token != null && _currentUser != null;
 
+  // Register
+  Future<Map<String, dynamic>> register({
+    required String nom,
+    required String prenom,
+    required String telephone,
+    String? email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        ApiConfig.register,
+        data: {
+          'nom': nom,
+          'prenom': prenom,
+          'telephone': telephone,
+          if (email != null && email.isNotEmpty) 'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
+        _token = data['token'] as String?;
+        
+        if (data['user'] != null) {
+          _currentUser = User.fromJson(data['user'] as Map<String, dynamic>);
+        }
+        
+        // Sauvegarder le token
+        if (_token != null) {
+          await _saveToken(_token!);
+          _apiService.setToken(_token);
+          notifyListeners();
+          return {'success': true, 'user': _currentUser};
+        } else {
+          return {'success': false, 'message': 'Token non reçu du serveur'};
+        }
+      } else {
+        return {'success': false, 'message': 'Erreur d\'inscription (${response.statusCode})'};
+      }
+    } on DioException catch (e) {
+      // Gérer les erreurs HTTP spécifiques
+      String message = 'Erreur d\'inscription';
+      
+      if (e.response != null) {
+        // Erreur avec réponse du serveur
+        final data = e.response?.data;
+        if (data is Map) {
+          // Erreur de validation Laravel
+          if (data['message'] != null) {
+            message = data['message'] as String;
+          } else if (data['errors'] != null) {
+            final errors = data['errors'] as Map;
+            // Prendre le premier message d'erreur
+            if (errors.isNotEmpty) {
+              final firstError = errors.values.first;
+              if (firstError is List && firstError.isNotEmpty) {
+                message = firstError.first as String;
+              }
+            }
+          }
+        }
+        
+        if (e.response?.statusCode == 422) {
+          message = message.isNotEmpty ? message : 'Les données fournies sont invalides.';
+        } else if (e.response?.statusCode == 409) {
+          message = 'Un compte existe déjà avec cet email ou ce téléphone.';
+        } else if (e.response?.statusCode == 500) {
+          message = 'Erreur serveur. Veuillez réessayer plus tard.';
+        }
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.receiveTimeout ||
+                 e.type == DioExceptionType.sendTimeout) {
+        message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+      }
+      
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur inattendue: ${e.toString()}'};
+    }
+  }
+
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {

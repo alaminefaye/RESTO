@@ -5,7 +5,9 @@ import '../../services/table_service.dart';
 import 'table_detail_screen.dart';
 
 class QrScanScreen extends StatefulWidget {
-  const QrScanScreen({super.key});
+  final bool returnTableOnly; // Si true, retourne juste la table au lieu de naviguer
+
+  const QrScanScreen({super.key, this.returnTableOnly = false});
 
   @override
   State<QrScanScreen> createState() => _QrScanScreenState();
@@ -140,7 +142,13 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       if (!mounted) return;
 
-      // Naviguer vers les détails de la table (le scanner reste arrêté car on change d'écran)
+      // Si on vient du panier, retourner juste la table
+      if (widget.returnTableOnly) {
+        Navigator.pop(context, table);
+        return;
+      }
+
+      // Sinon, naviguer vers les détails de la table (le scanner reste arrêté car on change d'écran)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

@@ -91,16 +91,34 @@ class OrderService {
         List ordersData;
         if (data is List) {
           ordersData = data;
-        } else if (data['data'] != null) {
+        } else if (data is Map && data['data'] != null) {
           ordersData = data['data'] as List;
         } else {
           return [];
         }
-        return ordersData.map((json) => Order.fromJson(json)).toList();
+        
+        // Parsing sécurisé avec gestion des erreurs
+        List<Order> orders = [];
+        for (var json in ordersData) {
+          try {
+            if (json is Map<String, dynamic>) {
+              final order = Order.fromJson(json);
+              orders.add(order);
+            }
+          } catch (e) {
+            print('Erreur parsing commande: $e');
+            print('JSON: $json');
+            // Continue avec les autres commandes même si une échoue
+          }
+        }
+        return orders;
       }
       return [];
     } on DioException catch (e) {
       print('Erreur lors de la récupération des commandes: ${e.message}');
+      if (e.response != null) {
+        print('Response data: ${e.response?.data}');
+      }
       return [];
     } catch (e) {
       print('Erreur inattendue lors de la récupération des commandes: $e');

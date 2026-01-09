@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../auth/login_screen.dart';
+import 'orders_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -204,93 +204,15 @@ class ProfileScreen extends StatelessWidget {
                                     icon: Icons.phone_outlined,
                                     title: 'Téléphone',
                                     value: user.phone!,
-                                    showDivider: true,
+                                    showDivider: false,
                                   ),
                                 ],
-                                _buildInfoRow(
-                                  icon: Icons.badge_outlined,
-                                  title: 'ID Utilisateur',
-                                  value: '#${user.id}',
-                                  showDivider: false,
-                                  trailing: Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.grey[500],
-                                    size: 20,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 24),
-                  
-                    // Section Rôles
-                    if (user.roles.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Rôles',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Column(
-                                children: user.roles
-                                    .where((role) => role.isNotEmpty)
-                                    .map((role) {
-                                  final isLast = role == 
-                                      user.roles.where((r) => r.isNotEmpty).last;
-                                  return _buildInfoRow(
-                                    icon: Icons.shield_outlined,
-                                    title: role.toUpperCase(),
-                                    value: '',
-                                    showDivider: !isLast,
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.orange.shade600,
-                                            Colors.orange.shade400,
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Text(
-                                        'ACTIF',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     
                     const SizedBox(height: 24),
                   
@@ -318,6 +240,19 @@ class ProfileScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 _buildActionRow(
+                                  icon: Icons.receipt_long,
+                                  title: 'Historique des commandes',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const OrdersHistoryScreen(),
+                                      ),
+                                    );
+                                  },
+                                  showDivider: true,
+                                ),
+                                _buildActionRow(
                                   icon: Icons.info_outline_rounded,
                                   title: 'À propos',
                                   onTap: () {
@@ -327,59 +262,6 @@ class ProfileScreen extends StatelessWidget {
                                       applicationVersion: '1.0.0',
                                       applicationIcon: const Icon(Icons.restaurant_menu),
                                     );
-                                  },
-                                  showDivider: true,
-                                ),
-                                _buildActionRow(
-                                  icon: Icons.logout_rounded,
-                                  title: 'Déconnexion',
-                                  color: Colors.red,
-                                  onTap: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        backgroundColor: Colors.grey[800],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        title: const Text(
-                                          'Déconnexion',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                        content: const Text(
-                                          'Êtes-vous sûr de vouloir vous déconnecter ?',
-                                          style: TextStyle(color: Colors.grey),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context, false),
-                                            child: const Text(
-                                              'Annuler',
-                                              style: TextStyle(color: Colors.grey),
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context, true),
-                                            child: const Text(
-                                              'Déconnexion',
-                                              style: TextStyle(color: Colors.red),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirm == true && context.mounted) {
-                                      await authService.logout();
-                                      if (context.mounted) {
-                                        Navigator.of(context).pushAndRemoveUntil(
-                                          MaterialPageRoute(
-                                            builder: (_) => const LoginScreen(),
-                                          ),
-                                          (route) => false,
-                                        );
-                                      }
-                                    }
                                   },
                                   showDivider: false,
                                 ),
