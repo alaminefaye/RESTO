@@ -366,7 +366,16 @@ class CommandeController extends Controller
             'table' => $commande->table ? [
                 'id' => $commande->table->id,
                 'numero' => $commande->table->numero,
-                'type' => $commande->table->type,
+                'type' => $commande->table->type instanceof \App\Enums\TableType 
+                    ? $commande->table->type->value 
+                    : $commande->table->type,
+                'capacite' => $commande->table->capacite,
+                'statut' => $commande->table->statut instanceof \App\Enums\TableStatus
+                    ? $commande->table->statut->value
+                    : $commande->table->statut,
+                'prix' => $commande->table->prix,
+                'prix_par_heure' => $commande->table->prix_par_heure,
+                'actif' => $commande->table->actif,
             ] : null,
             'user' => $commande->user ? [
                 'id' => $commande->user->id,

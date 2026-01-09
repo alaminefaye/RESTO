@@ -135,18 +135,39 @@ class OrderService {
         // L'API peut retourner directement l'objet ou dans 'data'
         Map<String, dynamic> orderData;
         if (data is Map) {
-          orderData = data.containsKey('data') ? data['data'] as Map<String, dynamic> : data as Map<String, dynamic>;
+          if (data.containsKey('success') && data['success'] == true && data.containsKey('data')) {
+            // Format: {'success': true, 'data': {...}}
+            orderData = data['data'] as Map<String, dynamic>;
+          } else if (data.containsKey('data')) {
+            // Format: {'data': {...}}
+            orderData = data['data'] as Map<String, dynamic>;
+          } else {
+            // Format direct: {...}
+            orderData = data as Map<String, dynamic>;
+          }
         } else {
+          print('OrderService: getOrder - Invalid response data format: $data');
           return null;
         }
-        return Order.fromJson(orderData);
+        
+        try {
+          return Order.fromJson(orderData);
+        } catch (e) {
+          print('OrderService: Erreur parsing Order: $e');
+          print('OrderService: OrderData: $orderData');
+          return null;
+        }
       }
+      print('OrderService: getOrder - Failed with status code: ${response.statusCode}');
       return null;
     } on DioException catch (e) {
-      print('Erreur lors de la récupération de la commande: ${e.message}');
+      print('OrderService: Erreur DioException lors de la récupération de la commande: ${e.message}');
+      if (e.response != null) {
+        print('OrderService: Response data: ${e.response?.data}');
+      }
       return null;
     } catch (e) {
-      print('Erreur inattendue lors de la récupération de la commande: $e');
+      print('OrderService: Erreur inattendue lors de la récupération de la commande: $e');
       return null;
     }
   }
@@ -161,6 +182,71 @@ class OrderService {
       return response.statusCode == 200;
     } catch (e) {
       return false;
+    }
+  }
+
+  // Ajouter un produit à une commande existante
+  Future<Map<String, dynamic>> addProductToOrder({
+    required int orderId,
+    required int produitId,
+    required int quantite,
+    String? notes,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.orders}/$orderId/produits',
+        data: {
+          'produit_id': produitId,
+          'quantite': quantite,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        Map<String, dynamic> orderData;
+        if (data is Map) {
+          orderData = data.containsKey('data') 
+              ? data['data'] as Map<String, dynamic> 
+              : data as Map<String, dynamic>;
+        } else {
+          return {
+            'success': false,
+            'message': 'Format de réponse invalide',
+          };
+        }
+        return {
+          'success': true,
+          'order': Order.fromJson(orderData),
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Erreur lors de l\'ajout du produit',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Erreur lors de l\'ajout du produit';
+      if (e.response != null) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'] as String;
+        }
+        if (e.response?.statusCode == 403) {
+          message = 'Non autorisé. Veuillez vous reconnecter.';
+        } else if (e.response?.statusCode == 400) {
+          message = data['message'] ?? 'Cette commande ne peut plus être modifiée';
+        }
+      }
+      return {
+        'success': false,
+        'message': message,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erreur inattendue: ${e.toString()}',
+      };
     }
   }
 }
