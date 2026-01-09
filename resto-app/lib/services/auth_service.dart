@@ -217,6 +217,9 @@ class AuthService extends ChangeNotifier {
         }
         // Si la réponse n'est pas valide, supprimer le token
         await _clearToken();
+        _token = null;
+        _currentUser = null;
+        _apiService.setToken(null);
         return false;
       } catch (e) {
         // Token invalide ou expiré, supprimer
@@ -228,6 +231,9 @@ class AuthService extends ChangeNotifier {
       }
     }
     
+    _token = null;
+    _currentUser = null;
+    _apiService.setToken(null);
     return false;
   }
 

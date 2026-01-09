@@ -2,10 +2,12 @@ import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 
 class ApiService {
+  static ApiService? _instance;
   late Dio _dio;
   String? _token;
-
-  ApiService() {
+  
+  // Singleton pattern
+  ApiService._internal() {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
@@ -32,6 +34,12 @@ class ApiService {
       ),
     );
   }
+  
+  factory ApiService() {
+    _instance ??= ApiService._internal();
+    return _instance!;
+  }
+
 
   void setToken(String? token) {
     _token = token;

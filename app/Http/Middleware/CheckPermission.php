@@ -19,9 +19,39 @@ class CheckPermission
             return response()->json(['message' => 'Non authentifié'], 401);
         }
 
-        if (!$request->user()->hasAnyPermission($permissions)) {
+        $user = $request->user();
+        $hasPermission = false;
+
+        // Vérifier d'abord les abilities du token Sanctum (si disponible)
+        $currentAccessToken = $user->currentAccessToken();
+        if ($currentAccessToken) {
+            foreach ($permissions as $permission) {
+                if ($currentAccessToken->can($permission)) {
+                    $hasPermission = true;
+                    break;
+                }
+            }
+        }
+
+        // Si pas de permission via le token, vérifier les permissions Spatie
+        if (!$hasPermission) {
+            // Recharger les permissions pour s'assurer qu'elles sont à jour
+            $user->load('roles.permissions');
+            $hasPermission = $user->hasAnyPermission($permissions);
+        }
+
+        if (!$hasPermission) {
+            // Log pour débogage
+            \Log::warning('Permission refusée', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'required_permissions' => $permissions,
+                'user_permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                'token_abilities' => $currentAccessToken ? $currentAccessToken->abilities : [],
+            ]);
+            
             return response()->json([
-                'message' => 'Accès refusé. Permission requise: ' . implode(', ', $permissions)
+                'message' => 'Non autorisé. Veuillez vous reconnecter.',
             ], 403);
         }
 

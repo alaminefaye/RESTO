@@ -42,43 +42,43 @@ class OrderService {
           'message': response.data['message'] ?? 'Erreur lors de la création',
         };
       }
-    } on DioException catch (e) {
-      String message = 'Erreur lors de la création de la commande';
-      if (e.response != null) {
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          message = data['message'] as String;
-        } else if (data is Map && data['errors'] != null) {
-          final errors = data['errors'] as Map;
-          if (errors.isNotEmpty) {
-            message = (errors.values.first as List).first as String;
+        } on DioException catch (e) {
+          String message = 'Erreur lors de la création de la commande';
+          if (e.response != null) {
+            final data = e.response?.data;
+            if (data is Map && data['message'] != null) {
+              message = data['message'] as String;
+            } else if (data is Map && data['errors'] != null) {
+              final errors = data['errors'] as Map;
+              if (errors.isNotEmpty) {
+                message = (errors.values.first as List).first as String;
+              }
+            }
+            if (e.response?.statusCode == 422) {
+              message = message;
+            } else if (e.response?.statusCode == 401) {
+              message = 'Non autorisé. Veuillez vous reconnecter.';
+            } else if (e.response?.statusCode == 403) {
+              message = 'Non autorisé. Veuillez vous reconnecter.';
+            } else if (e.response?.statusCode == 500) {
+              message = 'Erreur serveur. Veuillez réessayer plus tard.';
+            }
+          } else if (e.type == DioExceptionType.connectionTimeout ||
+                     e.type == DioExceptionType.receiveTimeout) {
+            message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+          } else if (e.type == DioExceptionType.connectionError) {
+            message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
           }
+          return {
+            'success': false,
+            'message': message,
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Erreur inattendue: ${e.toString()}',
+          };
         }
-        if (e.response?.statusCode == 422) {
-          message = message;
-        } else if (e.response?.statusCode == 401) {
-          message = 'Non autorisé. Veuillez vous reconnecter.';
-        } else if (e.response?.statusCode == 403) {
-          message = 'Accès refusé';
-        } else if (e.response?.statusCode == 500) {
-          message = 'Erreur serveur. Veuillez réessayer plus tard.';
-        }
-      } else if (e.type == DioExceptionType.connectionTimeout ||
-                 e.type == DioExceptionType.receiveTimeout) {
-        message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
-      }
-      return {
-        'success': false,
-        'message': message,
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erreur inattendue: ${e.toString()}',
-      };
-    }
   }
 
   // Récupérer toutes les commandes
