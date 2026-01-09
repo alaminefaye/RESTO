@@ -103,7 +103,12 @@ class Commande extends Model
      */
     public function getStatutDisplayAttribute(): string
     {
-        return self::getStatuts()[$this->statut] ?? $this->statut;
+        // Si statut est un enum, utiliser sa valeur
+        $statutValue = $this->statut instanceof OrderStatus 
+            ? $this->statut->value 
+            : $this->statut;
+        
+        return self::getStatuts()[$statutValue] ?? (string) $statutValue;
     }
 
     /**

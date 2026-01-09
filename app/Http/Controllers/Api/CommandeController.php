@@ -356,6 +356,11 @@ class CommandeController extends Controller
      */
     private function formatCommande(Commande $commande): array
     {
+        // Convertir l'enum en string pour l'API
+        $statutValue = $commande->statut instanceof OrderStatus 
+            ? $commande->statut->value 
+            : $commande->statut;
+        
         return [
             'id' => $commande->id,
             'table' => $commande->table ? [
@@ -367,7 +372,7 @@ class CommandeController extends Controller
                 'id' => $commande->user->id,
                 'name' => $commande->user->name,
             ] : null,
-            'statut' => $commande->statut,
+            'statut' => $statutValue,
             'statut_display' => $commande->statut_display,
             'montant_total' => $commande->montant_total,
             'notes' => $commande->notes,
