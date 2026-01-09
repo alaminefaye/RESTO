@@ -61,14 +61,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      // La navigation sera gérée automatiquement par AuthWrapper
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inscription réussie !'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      // L'utilisateur est maintenant connecté, AuthWrapper redirigera automatiquement
+      // Attendre un peu pour que le token soit bien sauvegardé
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Inscription réussie !'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
+        // Forcer la mise à jour de AuthWrapper pour rediriger
+        // La redirection se fera automatiquement via Consumer dans AuthWrapper
+      }
     } else {
       String errorMessage = result['message'] ?? 'Erreur d\'inscription';
       

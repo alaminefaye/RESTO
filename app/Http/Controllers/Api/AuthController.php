@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -79,6 +80,20 @@ class AuthController extends Controller
                 'email' => $email, // Peut être null
                 'date_inscription' => now(),
             ]);
+
+            // Créer ou récupérer le rôle "client" et l'attribuer à l'utilisateur
+            // Utiliser le guard par défaut (généralement 'web' pour Spatie Permission)
+            $clientRole = Role::firstOrCreate(
+                ['name' => 'client', 'guard_name' => 'web'],
+                [
+                    'name' => 'client',
+                    'guard_name' => 'web',
+                ]
+            );
+            $user->assignRole($clientRole);
+            
+            // Recharger les rôles pour s'assurer qu'ils sont disponibles
+            $user->load('roles');
 
             DB::commit();
 
