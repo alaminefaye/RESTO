@@ -104,24 +104,44 @@ class Order {
                   final produitId = p['id'] as int? ?? 0;
                   final produitNom = p['nom'] as String? ?? 'Produit inconnu';
                   
+                  // Helper pour convertir en double de manière sécurisée
+                  double parseDouble(dynamic value, [double defaultValue = 0.0]) {
+                    if (value == null) return defaultValue;
+                    if (value is num) return value.toDouble();
+                    if (value is String) {
+                      return double.tryParse(value) ?? defaultValue;
+                    }
+                    return defaultValue;
+                  }
+
+                  // Helper pour convertir en int de manière sécurisée
+                  int parseInt(dynamic value, [int defaultValue = 0]) {
+                    if (value == null) return defaultValue;
+                    if (value is num) return value.toInt();
+                    if (value is String) {
+                      return int.tryParse(value) ?? defaultValue;
+                    }
+                    return defaultValue;
+                  }
+
                   // L'API formatCommande retourne prix_unitaire directement dans le produit
                   // Mais peut aussi être dans pivot selon le contexte
                   double prix = 0.0;
                   if (p['prix_unitaire'] != null) {
-                    prix = (p['prix_unitaire'] as num).toDouble();
+                    prix = parseDouble(p['prix_unitaire']);
                   } else if (pivot != null && pivot['prix_unitaire'] != null) {
-                    prix = (pivot['prix_unitaire'] as num).toDouble();
+                    prix = parseDouble(pivot['prix_unitaire']);
                   } else if (pivot != null && pivot['prix'] != null) {
-                    prix = (pivot['prix'] as num).toDouble();
+                    prix = parseDouble(pivot['prix']);
                   } else if (p['prix'] != null) {
-                    prix = (p['prix'] as num).toDouble();
+                    prix = parseDouble(p['prix']);
                   }
                   
                   int quantite = 1;
                   if (p['quantite'] != null) {
-                    quantite = (p['quantite'] as int? ?? 1);
+                    quantite = parseInt(p['quantite'], 1);
                   } else if (pivot != null && pivot['quantite'] != null) {
-                    quantite = (pivot['quantite'] as int? ?? 1);
+                    quantite = parseInt(pivot['quantite'], 1);
                   }
                   
                   return OrderItem(
@@ -156,11 +176,31 @@ class Order {
         }
       }
 
+      // Helper pour convertir en double de manière sécurisée
+      double parseDouble(dynamic value, [double defaultValue = 0.0]) {
+        if (value == null) return defaultValue;
+        if (value is num) return value.toDouble();
+        if (value is String) {
+          return double.tryParse(value) ?? defaultValue;
+        }
+        return defaultValue;
+      }
+
+      // Helper pour convertir en int de manière sécurisée
+      int parseInt(dynamic value, [int defaultValue = 0]) {
+        if (value == null) return defaultValue;
+        if (value is num) return value.toInt();
+        if (value is String) {
+          return int.tryParse(value) ?? defaultValue;
+        }
+        return defaultValue;
+      }
+
       return Order(
-        id: json['id'] as int? ?? 0,
-        tableId: json['table_id'] as int? ?? 0,
-        userId: json['user_id'] as int?,
-        montantTotal: ((json['montant_total'] ?? 0) as num).toDouble(),
+        id: parseInt(json['id'], 0),
+        tableId: parseInt(json['table_id'], 0),
+        userId: json['user_id'] != null ? parseInt(json['user_id']) : null,
+        montantTotal: parseDouble(json['montant_total'], 0.0),
         statut: OrderStatus.fromString(json['statut'] as String? ?? 'attente'),
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)

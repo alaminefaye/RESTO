@@ -374,20 +374,20 @@ class CommandeController extends Controller
             ] : null,
             'statut' => $statutValue,
             'statut_display' => $commande->statut_display,
-            'montant_total' => $commande->montant_total,
+            'montant_total' => (float) $commande->montant_total,
             'notes' => $commande->notes,
             'produits' => $commande->produits->map(function($produit) {
                 return [
-                    'id' => $produit->id,
+                    'id' => (int) $produit->id,
                     'nom' => $produit->nom,
-                    'prix_unitaire' => $produit->pivot->prix_unitaire,
-                    'quantite' => $produit->pivot->quantite,
+                    'prix_unitaire' => (float) $produit->pivot->prix_unitaire,
+                    'quantite' => (int) $produit->pivot->quantite,
                     'notes' => $produit->pivot->notes,
-                    'sous_total' => $produit->pivot->prix_unitaire * $produit->pivot->quantite,
+                    'sous_total' => (float) ($produit->pivot->prix_unitaire * $produit->pivot->quantite),
                 ];
             }),
-            'created_at' => $commande->created_at,
-            'updated_at' => $commande->updated_at,
+            'created_at' => $commande->created_at ? $commande->created_at->toIso8601String() : null,
+            'updated_at' => $commande->updated_at ? $commande->updated_at->toIso8601String() : null,
         ];
     }
 }
