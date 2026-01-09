@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class AuthController extends Controller
 {
@@ -90,10 +91,26 @@ class AuthController extends Controller
                     'guard_name' => 'web',
                 ]
             );
+            
+            // Attribuer les permissions nécessaires au rôle client
+            // Permissions pour les clients : créer et voir leurs propres commandes
+            $permissions = [
+                'create_orders',  // Créer des commandes
+                'view_orders',    // Voir les commandes (leurs propres commandes)
+            ];
+            
+            foreach ($permissions as $permissionName) {
+                $permission = Permission::firstOrCreate(
+                    ['name' => $permissionName, 'guard_name' => 'web']
+                );
+                // Utiliser syncWithoutDetaching pour ne pas supprimer les autres permissions
+                $clientRole->givePermissionTo($permission);
+            }
+            
             $user->assignRole($clientRole);
             
-            // Recharger les rôles pour s'assurer qu'ils sont disponibles
-            $user->load('roles');
+            // Recharger les rôles et permissions pour s'assurer qu'ils sont disponibles
+            $user->load('roles.permissions');
 
             DB::commit();
 
