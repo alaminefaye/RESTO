@@ -76,9 +76,9 @@ class Cart extends ChangeNotifier {
 
   List<Map<String, dynamic>> toJson() {
     return _items.map((item) => {
-          'produit_id': item.product.id,
-          'quantite': item.quantite,
-        }).toList();
+      'produit_id': item.product.id,
+      'quantite': item.quantite,
+    }).toList();
   }
 }
 

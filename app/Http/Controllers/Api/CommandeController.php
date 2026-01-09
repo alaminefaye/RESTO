@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Commande;
 use App\Models\Product;
 use App\Models\Table;
+use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -50,6 +51,12 @@ class CommandeController extends Controller
      */
     public function store(Request $request)
     {
+        // Log pour débogage
+        \Log::info('CommandeController::store - Données reçues', [
+            'request_data' => $request->all(),
+            'user_id' => auth()->id(),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'table_id' => 'required|exists:tables,id',
             'notes' => 'nullable|string',
@@ -60,6 +67,9 @@ class CommandeController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::error('CommandeController::store - Erreur de validation', [
+                'errors' => $validator->errors()->toArray(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur de validation',
@@ -73,26 +83,56 @@ class CommandeController extends Controller
             $commande = Commande::create([
                 'table_id' => $request->table_id,
                 'user_id' => auth()->id(),
+                'statut' => OrderStatus::Attente,
                 'notes' => $request->notes,
+            ]);
+            
+            \Log::info('CommandeController::store - Commande créée', [
+                'commande_id' => $commande->id,
             ]);
 
             // Ajouter les produits
             foreach ($request->produits as $item) {
                 $produit = Product::find($item['produit_id']);
                 
+                if (!$produit) {
+                    DB::rollBack();
+                    \Log::error('CommandeController::store - Produit non trouvé', [
+                        'produit_id' => $item['produit_id'] ?? null,
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Le produit avec l'ID {$item['produit_id']} n'existe pas",
+                    ], 400);
+                }
+                
                 if (!$produit->isDisponible()) {
                     DB::rollBack();
+                    \Log::warning('CommandeController::store - Produit non disponible', [
+                        'produit_id' => $produit->id,
+                        'produit_nom' => $produit->nom,
+                    ]);
                     return response()->json([
                         'success' => false,
                         'message' => "Le produit {$produit->nom} n'est pas disponible",
                     ], 400);
                 }
 
-                $commande->ajouterProduit(
-                    $produit,
-                    $item['quantite'],
-                    $item['notes'] ?? null
-                );
+                try {
+                    $commande->ajouterProduit(
+                        $produit,
+                        $item['quantite'],
+                        $item['notes'] ?? null
+                    );
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    \Log::error('CommandeController::store - Erreur lors de l\'ajout du produit', [
+                        'produit_id' => $produit->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    throw $e;
+                }
             }
 
             // Marquer la table comme occupée
@@ -111,10 +151,16 @@ class CommandeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('CommandeController::store - Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de la création de la commande',
-                'error' => $e->getMessage(),
+                'message' => 'Erreur serveur. Veuillez réessayer plus tard.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Erreur interne du serveur',
             ], 500);
         }
     }
