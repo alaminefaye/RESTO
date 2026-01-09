@@ -31,14 +31,15 @@ class AuthController extends Controller
             ]);
 
             // Vérifier l'unicité de l'email si fourni
-            if (!empty($validated['email'])) {
-                if (User::where('email', $validated['email'])->exists()) {
+            $email = $validated['email'] ?? null;
+            if (!empty($email)) {
+                if (User::where('email', $email)->exists()) {
                     return response()->json([
                         'message' => 'Cet email est déjà utilisé',
                         'errors' => ['email' => ['Cet email est déjà utilisé']],
                     ], 422);
                 }
-                if (Client::where('email', $validated['email'])->exists()) {
+                if (Client::where('email', $email)->exists()) {
                     return response()->json([
                         'message' => 'Cet email est déjà utilisé',
                         'errors' => ['email' => ['Cet email est déjà utilisé']],
@@ -49,7 +50,7 @@ class AuthController extends Controller
             DB::beginTransaction();
 
             // Générer un email unique si non fourni
-            $userEmail = $validated['email'];
+            $userEmail = $email;
             if (empty($userEmail)) {
                 // Créer un email unique basé sur le téléphone
                 $baseEmail = $validated['telephone'] . '@resto.local';
@@ -75,7 +76,7 @@ class AuthController extends Controller
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
                 'telephone' => $validated['telephone'],
-                'email' => $validated['email'], // Peut être null
+                'email' => $email, // Peut être null
                 'date_inscription' => now(),
             ]);
 
