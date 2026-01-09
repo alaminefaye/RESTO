@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../menu/menu_screen.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -61,10 +62,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      // L'utilisateur est maintenant connecté, AuthWrapper redirigera automatiquement
-      // Attendre un peu pour que le token soit bien sauvegardé
-      await Future.delayed(const Duration(milliseconds: 100));
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -73,8 +70,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
             duration: Duration(seconds: 1),
           ),
         );
-        // Forcer la mise à jour de AuthWrapper pour rediriger
-        // La redirection se fera automatiquement via Consumer dans AuthWrapper
+        
+        // Attendre un peu pour que le message s'affiche
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (mounted) {
+          // Naviguer vers l'écran principal en remplaçant toute la pile de navigation
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MenuScreen()),
+            (route) => false, // Supprimer toutes les routes précédentes
+          );
+        }
       }
     } else {
       String errorMessage = result['message'] ?? 'Erreur d\'inscription';

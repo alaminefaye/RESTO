@@ -12,14 +12,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailOrPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _emailOrPhoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
     final result = await authService.login(
-      _emailController.text.trim(),
+      _emailOrPhoneController.text.trim(),
       _passwordController.text,
     );
 
@@ -116,15 +116,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   
-                  // Email field
+                  // Email ou Téléphone field
                   TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _emailOrPhoneController,
+                    keyboardType: TextInputType.text,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Email',
+                      labelText: 'Email ou Téléphone',
                       labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.email, color: Colors.orange),
+                      hintText: 'exemple@email.com ou 0705316506',
+                      hintStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      prefixIcon: const Icon(Icons.person, color: Colors.orange),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -142,10 +144,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre email';
+                        return 'Veuillez entrer votre email ou téléphone';
                       }
-                      if (!value.contains('@')) {
-                        return 'Email invalide';
+                      // Si c'est un email (contient @), vérifier le format
+                      if (value.contains('@')) {
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          return 'Format email invalide';
+                        }
+                      }
+                      // Si c'est un téléphone, vérifier qu'il contient au moins des chiffres
+                      if (!value.contains('@') && !RegExp(r'^[\d\s\+\-\(\)]+$').hasMatch(value)) {
+                        return 'Format téléphone invalide';
                       }
                       return null;
                     },

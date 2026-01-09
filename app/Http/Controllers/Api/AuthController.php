@@ -163,6 +163,7 @@ class AuthController extends Controller
 
     /**
      * Connexion (Login)
+     * Accepte soit un email soit un numéro de téléphone
      * 
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -170,11 +171,45 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string', // Peut être email ou téléphone
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $identifier = $request->email;
+        $user = null;
+
+        // Vérifier si c'est un email (contient @)
+        if (str_contains($identifier, '@')) {
+            // Connexion par email
+            $user = User::where('email', $identifier)->first();
+        } else {
+            // Connexion par téléphone
+            // Chercher le client par téléphone
+            $client = Client::where('telephone', $identifier)->first();
+            
+            if ($client) {
+                // Si le client a un email, chercher le User par cet email
+                if ($client->email) {
+                    $user = User::where('email', $client->email)->first();
+                }
+                
+                // Si pas trouvé, essayer avec l'email généré (telephone@resto.local)
+                if (!$user) {
+                    $generatedEmail = $identifier . '@resto.local';
+                    $user = User::where('email', $generatedEmail)->first();
+                    
+                    // Si toujours pas trouvé, essayer avec les variantes (telephone_1@resto.local, etc.)
+                    if (!$user) {
+                        $counter = 1;
+                        while (!$user && $counter < 10) {
+                            $generatedEmail = $identifier . '_' . $counter . '@resto.local';
+                            $user = User::where('email', $generatedEmail)->first();
+                            $counter++;
+                        }
+                    }
+                }
+            }
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([

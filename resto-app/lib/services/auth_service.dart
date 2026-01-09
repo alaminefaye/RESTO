@@ -100,13 +100,13 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Login
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  // Login (accepte email ou téléphone)
+  Future<Map<String, dynamic>> login(String emailOrPhone, String password) async {
     try {
       final response = await _apiService.post(
         ApiConfig.login,
         data: {
-          'email': email,
+          'email': emailOrPhone, // Peut être email ou téléphone
           'password': password,
         },
       );
