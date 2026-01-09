@@ -21,21 +21,52 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
-            'telephone' => 'required|string|max:20|unique:clients,telephone',
-            'email' => 'nullable|email|unique:users,email|unique:clients,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
         try {
+            $validated = $request->validate([
+                'nom' => 'required|string|max:255',
+                'prenom' => 'required|string|max:255',
+                'telephone' => 'required|string|max:20|unique:clients,telephone',
+                'email' => 'nullable|email|max:255',
+                'password' => 'required|string|min:6|confirmed',
+            ]);
+
+            // Vérifier l'unicité de l'email si fourni
+            if (!empty($validated['email'])) {
+                if (User::where('email', $validated['email'])->exists()) {
+                    return response()->json([
+                        'message' => 'Cet email est déjà utilisé',
+                        'errors' => ['email' => ['Cet email est déjà utilisé']],
+                    ], 422);
+                }
+                if (Client::where('email', $validated['email'])->exists()) {
+                    return response()->json([
+                        'message' => 'Cet email est déjà utilisé',
+                        'errors' => ['email' => ['Cet email est déjà utilisé']],
+                    ], 422);
+                }
+            }
+
             DB::beginTransaction();
+
+            // Générer un email unique si non fourni
+            $userEmail = $validated['email'];
+            if (empty($userEmail)) {
+                // Créer un email unique basé sur le téléphone
+                $baseEmail = $validated['telephone'] . '@resto.local';
+                $counter = 1;
+                $userEmail = $baseEmail;
+                
+                // Vérifier que l'email n'existe pas déjà
+                while (User::where('email', $userEmail)->exists()) {
+                    $userEmail = $validated['telephone'] . '_' . $counter . '@resto.local';
+                    $counter++;
+                }
+            }
 
             // Créer l'utilisateur (pour l'authentification)
             $user = User::create([
-                'name' => $validated['nom'] . ' ' . $validated['prenom'],
-                'email' => $validated['email'] ?? $validated['telephone'] . '@resto.local',
+                'name' => trim($validated['nom'] . ' ' . $validated['prenom']),
+                'email' => $userEmail,
                 'password' => Hash::make($validated['password']),
             ]);
 
@@ -44,12 +75,9 @@ class AuthController extends Controller
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
                 'telephone' => $validated['telephone'],
-                'email' => $validated['email'],
+                'email' => $validated['email'], // Peut être null
                 'date_inscription' => now(),
             ]);
-
-            // Attribuer le rôle "client" si il existe, sinon créer un utilisateur sans rôle spécifique
-            // Note: Vous devrez peut-être créer un rôle "client" dans votre système
 
             DB::commit();
 
@@ -78,11 +106,24 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Erreur lors de l\'inscription',
-                'error' => $e->getMessage(),
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Logger l'erreur pour le débogage
+            \Log::error('Erreur lors de l\'inscription: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Erreur serveur. Veuillez réessayer plus tard.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Erreur interne du serveur',
             ], 500);
         }
     }
