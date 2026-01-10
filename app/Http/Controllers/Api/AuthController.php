@@ -93,10 +93,11 @@ class AuthController extends Controller
             );
             
             // Attribuer les permissions nécessaires au rôle client
-            // Permissions pour les clients : créer et voir leurs propres commandes
+            // Permissions pour les clients : créer, voir et modifier leurs propres commandes
             $permissions = [
                 'create_orders',  // Créer des commandes
                 'view_orders',    // Voir les commandes (leurs propres commandes)
+                'update_orders',  // Modifier leurs propres commandes (ajouter des produits)
             ];
             
             foreach ($permissions as $permissionName) {

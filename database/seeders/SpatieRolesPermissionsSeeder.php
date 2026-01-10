@@ -67,6 +67,7 @@ class SpatieRolesPermissionsSeeder extends Seeder
         $client->syncPermissions([
             'create_orders',  // Créer des commandes
             'view_orders',   // Voir les commandes (leurs propres commandes)
+            'update_orders', // Modifier leurs propres commandes (ajouter des produits)
         ]);
 
         $this->command->info('✓ Rôles et permissions créés avec Spatie !');

@@ -119,11 +119,11 @@ class CommandeController extends Controller
                 }
 
                 try {
-                    $commande->ajouterProduit(
-                        $produit,
-                        $item['quantite'],
-                        $item['notes'] ?? null
-                    );
+                $commande->ajouterProduit(
+                    $produit,
+                    $item['quantite'],
+                    $item['notes'] ?? null
+                );
                 } catch (\Exception $e) {
                     DB::rollBack();
                     \Log::error('CommandeController::store - Erreur lors de l\'ajout du produit', [
@@ -243,6 +243,16 @@ class CommandeController extends Controller
                 'success' => false,
                 'message' => 'Commande non trouvée',
             ], 404);
+        }
+
+        // Vérifier que l'utilisateur est le propriétaire de la commande (pour les clients)
+        // Les admins, managers, serveurs et caissiers peuvent modifier n'importe quelle commande
+        $user = auth()->user();
+        if ($user->hasRole('client') && $commande->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier cette commande',
+            ], 403);
         }
 
         if (!$commande->peutEtreModifiee()) {

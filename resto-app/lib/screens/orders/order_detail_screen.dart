@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/api_config.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../models/category.dart';
 import '../../services/order_service.dart';
 import '../../services/menu_service.dart';
 import '../../utils/formatters.dart';
@@ -481,13 +482,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Future<void> _showAddProductDialog() async {
     if (_order == null) return;
 
-    // Charger les produits disponibles
+    // Charger les catégories et produits disponibles
+    List<Category> categories = [];
     List<Product> products = [];
     bool isLoadingProducts = true;
 
     try {
-      products = await _menuService.getProducts();
-      products = products.where((p) => p.disponible).toList();
+      final results = await Future.wait([
+        _menuService.getCategories(),
+        _menuService.getProducts(),
+      ]);
+      categories = results[0] as List<Category>;
+      products = (results[1] as List<Product>).where((p) => p.disponible).toList();
     } catch (e) {
       debugPrint('Erreur lors du chargement des produits: $e');
     } finally {
@@ -496,109 +502,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     if (!mounted) return;
 
-    int? selectedProductId;
-    final quantityController = TextEditingController(text: '1');
+    // Organiser les produits par catégorie
+    Map<int, List<Product>> productsByCategory = {};
+    for (var product in products) {
+      final categoryId = product.categorieId ?? 0;
+      if (!productsByCategory.containsKey(categoryId)) {
+        productsByCategory[categoryId] = [];
+      }
+      productsByCategory[categoryId]!.add(product);
+    }
+
+    // Trier les catégories par ordre
+    categories.sort((a, b) => a.ordre.compareTo(b.ordre));
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Colors.grey[800],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Ajouter un produit',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: isLoadingProducts
-                ? const Center(child: CircularProgressIndicator())
-                : products.isEmpty
-                    ? const Text(
-                        'Aucun produit disponible',
-                        style: TextStyle(color: Colors.grey),
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Sélection du produit
-                          DropdownButtonFormField<int>(
-                            value: selectedProductId,
-                            decoration: InputDecoration(
-                              labelText: 'Produit',
-                              labelStyle: const TextStyle(color: Colors.grey),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[700],
-                            ),
-                            dropdownColor: Colors.grey[700],
-                            style: const TextStyle(color: Colors.white),
-                            items: products.map((product) {
-                              return DropdownMenuItem<int>(
-                                value: product.id,
-                                child: Text(product.nom),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setDialogState(() {
-                                selectedProductId = value;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          // Quantité
-                          TextFormField(
-                            controller: quantityController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Quantité',
-                              labelStyle: const TextStyle(color: Colors.grey),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[700],
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                quantityController.dispose();
-                Navigator.pop(context, null);
-              },
-              child: const Text(
-                'Annuler',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-            if (!isLoadingProducts && products.isNotEmpty)
-              ElevatedButton(
-                onPressed: selectedProductId == null
-                    ? null
-                    : () {
-                        final quantity = int.tryParse(quantityController.text) ?? 1;
-                        quantityController.dispose();
-                        Navigator.pop(context, {
-                          'produitId': selectedProductId,
-                          'quantite': quantity,
-                        });
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Ajouter'),
-              ),
-          ],
-        ),
+      builder: (context) => _AddProductDialog(
+        categories: categories,
+        productsByCategory: productsByCategory,
+        isLoading: isLoadingProducts,
       ),
     );
 
@@ -654,5 +576,472 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+}
+
+// Widget pour le dialogue d'ajout de produit
+class _AddProductDialog extends StatefulWidget {
+  final List<Category> categories;
+  final Map<int, List<Product>> productsByCategory;
+  final bool isLoading;
+
+  const _AddProductDialog({
+    required this.categories,
+    required this.productsByCategory,
+    required this.isLoading,
+  });
+
+  @override
+  State<_AddProductDialog> createState() => _AddProductDialogState();
+}
+
+class _AddProductDialogState extends State<_AddProductDialog> {
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedCategoryId;
+  Product? _selectedProduct;
+  int _quantity = 1;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Product> get _filteredProducts {
+    String searchQuery = _searchController.text.toLowerCase();
+    List<Product> products;
+
+    if (_selectedCategoryId == null) {
+      // Tous les produits
+      products = widget.productsByCategory.values
+          .expand((list) => list)
+          .toList();
+    } else {
+      // Produits de la catégorie sélectionnée
+      products = widget.productsByCategory[_selectedCategoryId] ?? [];
+    }
+
+    // Filtrer par recherche
+    if (searchQuery.isNotEmpty) {
+      products = products.where((product) {
+        return product.nom.toLowerCase().contains(searchQuery) ||
+            (product.description?.toLowerCase().contains(searchQuery) ?? false) ||
+            (product.categorieNom?.toLowerCase().contains(searchQuery) ?? false);
+      }).toList();
+    }
+
+    return products;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context, null),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Ajouter un produit',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 48), // Espace pour équilibrer
+                ],
+              ),
+            ),
+
+            // Barre de recherche
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Rechercher un produit...',
+                  hintStyle: TextStyle(color: Colors.grey[500]),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: Colors.grey[400]),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey[800],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+
+            // Filtres de catégories
+            if (widget.categories.isNotEmpty)
+              SizedBox(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: widget.categories.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      // Bouton "Tous"
+                      final isSelected = _selectedCategoryId == null;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: FilterChip(
+                          label: const Text('Tous'),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedCategoryId = null;
+                              _selectedProduct = null;
+                            });
+                          },
+                          selectedColor: Colors.orange,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey[300],
+                            fontWeight: FontWeight.bold,
+                          ),
+                          backgroundColor: Colors.grey[800],
+                        ),
+                      );
+                    }
+
+                    final category = widget.categories[index - 1];
+                    final isSelected = _selectedCategoryId == category.id;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: FilterChip(
+                        label: Text(category.nom),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedCategoryId = selected ? category.id : null;
+                            _selectedProduct = null;
+                          });
+                        },
+                        selectedColor: Colors.orange,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.grey[300],
+                          fontWeight: FontWeight.bold,
+                        ),
+                        backgroundColor: Colors.grey[800],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Liste des produits
+            Expanded(
+              child: widget.isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                  : _filteredProducts.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Aucun produit trouvé',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _filteredProducts[index];
+                            final isSelected = _selectedProduct?.id == product.id;
+
+                            return _buildProductCard(product, isSelected);
+                          },
+                        ),
+            ),
+
+            // Footer avec quantité et bouton d'ajout
+            if (_selectedProduct != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Quantité:',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Bouton moins
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle, color: Colors.orange),
+                          onPressed: _quantity > 1
+                              ? () {
+                                  setState(() {
+                                    _quantity--;
+                                  });
+                                }
+                              : null,
+                        ),
+                        Container(
+                          width: 60,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$_quantity',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        // Bouton plus
+                        IconButton(
+                          icon: const Icon(Icons.add_circle, color: Colors.orange),
+                          onPressed: () {
+                            setState(() {
+                              _quantity++;
+                            });
+                          },
+                        ),
+                        const Spacer(),
+                        Text(
+                          Formatters.formatCurrency(_selectedProduct!.prix * _quantity),
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, {
+                            'produitId': _selectedProduct!.id,
+                            'quantite': _quantity,
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Ajouter au panier',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Product product, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.orange.withOpacity(0.2) : Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? Colors.orange : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedProduct = product;
+            _quantity = 1;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Image du produit
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: product.imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: product.imageUrl,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey[700],
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey[700],
+                          child: Icon(
+                            Icons.restaurant_menu,
+                            color: Colors.grey[400],
+                            size: 30,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 70,
+                        height: 70,
+                        color: Colors.grey[700],
+                        child: Icon(
+                          Icons.restaurant_menu,
+                          color: Colors.grey[400],
+                          size: 30,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              // Informations du produit
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.nom,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (product.description != null && product.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        product.description!,
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      Formatters.formatCurrency(product.prix),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Checkbox de sélection
+              if (isSelected)
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 

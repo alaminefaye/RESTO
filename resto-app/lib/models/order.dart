@@ -196,7 +196,7 @@ class Order {
         return defaultValue;
       }
 
-      return Order(
+    return Order(
         id: parseInt(json['id'], 0),
         tableId: parseInt(json['table_id'], 0),
         userId: json['user_id'] != null ? parseInt(json['user_id']) : null,
@@ -205,9 +205,9 @@ class Order {
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)
             : DateTime.now(),
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
         produits: produits,
         table: table,
       );
