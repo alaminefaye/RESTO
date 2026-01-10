@@ -123,7 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [App\Http\Controllers\Api\CommandeController::class, 'store'])
             ->middleware('permission:create_orders');
         
-        // Modifier une commande (serveur, manager, admin)
+        // Modifier une commande (serveur, manager, admin) et clients (leurs propres commandes)
         Route::middleware('permission:update_orders')->group(function () {
             Route::put('/{id}', [App\Http\Controllers\Api\CommandeController::class, 'update']);
             Route::patch('/{id}', [App\Http\Controllers\Api\CommandeController::class, 'update']);
@@ -131,7 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/produits/{produitId}', [App\Http\Controllers\Api\CommandeController::class, 'removeProduit']);
         });
         
-        // Changer le statut (serveur, caissier, manager, admin)
+        // Lancer une commande (client peut lancer sa propre commande)
+        Route::post('/{id}/lancer', [App\Http\Controllers\Api\CommandeController::class, 'lancer'])
+            ->middleware('permission:update_orders');
+        
+        // Changer le statut (serveur, caissier, manager, admin uniquement - pas les clients)
         Route::patch('/{id}/statut', [App\Http\Controllers\Api\CommandeController::class, 'updateStatut'])
             ->middleware('permission:update_order_status');
     });
@@ -146,15 +150,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{paiement}', [App\Http\Controllers\Api\PaiementController::class, 'show'])
             ->middleware('permission:view_cashier');
         
-        // Initier un paiement (caissier, manager, admin)
+        // Initier un paiement (client pour Wave/Orange Money, gérant pour tous)
         Route::post('/', [App\Http\Controllers\Api\PaiementController::class, 'store'])
-            ->middleware('permission:process_payments');
+            ->middleware('permission:create_orders,process_payments');
         
-        // Workflow rapide paiement espèces (caissier, manager, admin)
+        // Workflow rapide paiement espèces (caissier, manager, admin uniquement)
         Route::post('/especes', [App\Http\Controllers\Api\PaiementController::class, 'payerEspeces'])
             ->middleware('permission:process_payments');
         
-        // Valider un paiement mobile money (caissier, manager, admin)
+        // Client confirme son paiement mobile money (Wave, Orange Money)
+        Route::post('/{paiement}/confirmer', [App\Http\Controllers\Api\PaiementController::class, 'confirmer'])
+            ->middleware('permission:create_orders,process_payments');
+        
+        // Valider un paiement mobile money (caissier, manager, admin uniquement)
         Route::patch('/{paiement}/valider', [App\Http\Controllers\Api\PaiementController::class, 'valider'])
             ->middleware('permission:process_payments');
         
@@ -166,8 +174,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{paiement}', [App\Http\Controllers\Api\PaiementController::class, 'annuler'])
             ->middleware('permission:process_payments');
         
-        // Télécharger la facture
+        // Télécharger la facture (client peut télécharger sa facture, gérant peut toutes)
         Route::get('/{paiement}/facture', [App\Http\Controllers\Api\PaiementController::class, 'telechargerFacture'])
-            ->middleware('permission:generate_invoices');
+            ->middleware('permission:create_orders,generate_invoices');
     });
 });

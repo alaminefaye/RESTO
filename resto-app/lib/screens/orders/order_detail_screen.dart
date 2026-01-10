@@ -6,7 +6,9 @@ import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../services/order_service.dart';
 import '../../services/menu_service.dart';
+import '../../services/payment_service.dart';
 import '../../utils/formatters.dart';
+import 'payment_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -20,6 +22,7 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final OrderService _orderService = OrderService();
   final MenuService _menuService = MenuService();
+  final PaymentService _paymentService = PaymentService();
   Order? _order;
   bool _isLoading = true;
   bool _canAddProducts = true; // Vérifier si la commande peut être modifiée
@@ -38,12 +41,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
 
     try {
-      final order = await _orderService.getOrder(widget.orderId);
+    final order = await _orderService.getOrder(widget.orderId);
 
       if (mounted) {
-        setState(() {
-          _order = order;
-          _isLoading = false;
+    setState(() {
+      _order = order;
+      _isLoading = false;
           // La commande peut être modifiée si elle est en attente ou en préparation
           _canAddProducts = order != null && 
               (order.statut == OrderStatus.attente || 
@@ -142,11 +145,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   color: Colors.orange,
                   backgroundColor: Colors.grey[800],
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Statut
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Statut
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.grey[800],
@@ -170,7 +173,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(_order!.statut),
+                                    color: _getStatusColor(_order!.statut),
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: Text(
@@ -183,11 +186,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ),
                             ],
-                          ),
                         ),
-                        const SizedBox(height: 16),
-                        
-                        // Informations
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Informations
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.grey[800],
@@ -229,11 +232,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   Formatters.formatDateTime(_order!.updatedAt!),
                                 ),
                             ],
-                          ),
                         ),
-                        const SizedBox(height: 16),
-                        
-                        // Produits
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Produits
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.grey[800],
@@ -287,11 +290,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ],
                             ],
-                          ),
                         ),
-                        const SizedBox(height: 16),
-                        
-                        // Total
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Total
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.orange.withOpacity(0.2),
@@ -324,6 +327,57 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
+
+                        // Boutons d'action
+                        if (_order!.statut == OrderStatus.attente && _order!.produits != null && _order!.produits!.isNotEmpty)
+                          // Bouton "Lancer la commande" si en attente
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _launchOrder,
+                              icon: const Icon(Icons.send, color: Colors.white),
+                              label: const Text(
+                                'Lancer la commande',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (_order!.statut == OrderStatus.servie || _order!.statut == OrderStatus.preparation)
+                          // Bouton "Payer" si servie ou en préparation
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showPaymentScreen,
+                              icon: const Icon(Icons.payment, color: Colors.white),
+                              label: const Text(
+                                'Payer',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -349,7 +403,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+          Text(
                   label,
                   style: TextStyle(
                     color: Colors.grey[400],
@@ -358,8 +412,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  value,
+          Text(
+            value,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -440,13 +494,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '${Formatters.formatCurrency(item.prix)} x ${item.quantite}',
+                  Text(
+                    '${Formatters.formatCurrency(item.prix)} x ${item.quantite}',
                   style: TextStyle(
                     color: Colors.grey[400],
                     fontSize: 13,
                   ),
-                ),
+                  ),
               ],
             ),
           ),
@@ -574,6 +628,97 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         );
       }
     }
+  }
+
+  Future<void> _launchOrder() async {
+    if (_order == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[800],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Lancer la commande',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Voulez-vous lancer cette commande pour la préparation ?',
+          style: TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Lancer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Colors.orange),
+      ),
+    );
+
+    final result = await _paymentService.launchOrder(widget.orderId);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Fermer le loading
+
+    if (result['success'] == true) {
+      // Recharger la commande
+      await _loadOrder();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commande lancée avec succès !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Erreur lors du lancement'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPaymentScreen() {
+    if (_order == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentScreen(order: _order!),
+      ),
+    ).then((_) {
+      // Recharger la commande après paiement
+      _loadOrder();
+    });
   }
 
 }

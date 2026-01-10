@@ -326,6 +326,48 @@ class CommandeController extends Controller
     }
 
     /**
+     * Lancer une commande (passer de "attente" à "preparation")
+     * POST /api/commandes/{id}/lancer
+     */
+    public function lancer($id)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        // Vérifier que la commande est en attente
+        if ($commande->statut !== OrderStatus::Attente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette commande ne peut être lancée que si elle est en attente.',
+            ], 400);
+        }
+
+        // Vérifier que l'utilisateur est le propriétaire (pour les clients)
+        $user = auth()->user();
+        if ($user->hasRole('client') && $commande->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à lancer cette commande',
+            ], 403);
+        }
+
+        // Changer le statut à "preparation"
+        $commande->update(['statut' => OrderStatus::Preparation]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Commande lancée avec succès',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
      * Changer le statut d'une commande
      * PATCH /api/commandes/{id}/statut
      */
@@ -352,7 +394,17 @@ class CommandeController extends Controller
             ], 422);
         }
 
-        $commande->changerStatut($request->statut);
+        // Vérifier que l'utilisateur a les permissions pour changer le statut
+        // Les clients ne peuvent pas changer le statut manuellement (sauf lancer)
+        $user = auth()->user();
+        if ($user->hasRole('client')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier le statut de cette commande',
+            ], 403);
+        }
+
+        $commande->update(['statut' => OrderStatus::from($validator->validated()['statut'])]);
 
         return response()->json([
             'success' => true,

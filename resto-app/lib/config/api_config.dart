@@ -27,6 +27,13 @@ class ApiConfig {
   // Orders
   static const String orders = '/commandes';
   static String orderStatus(int id) => '/commandes/$id/status';
+  static String launchOrder(int id) => '/commandes/$id/lancer';
+
+  // Payments
+  static const String payments = '/paiements';
+  static String confirmPayment(int id) => '/paiements/$id/confirmer';
+  static String validatePayment(int id) => '/paiements/$id/valider';
+  static const String payCash = '/paiements/especes';
 
   // Headers
   static Map<String, String> getHeaders(String? token) {

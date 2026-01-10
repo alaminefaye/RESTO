@@ -30,7 +30,10 @@ class PaiementController extends Controller
     public function index()
     {
         $paiements = Paiement::with(['commande.table', 'user', 'facture'])->get();
-        return response()->json($paiements);
+        return response()->json([
+            'success' => true,
+            'data' => $paiements,
+        ]);
     }
 
     /**
@@ -38,7 +41,10 @@ class PaiementController extends Controller
      */
     public function show(Paiement $paiement)
     {
-        return response()->json($paiement->load(['commande.table', 'commande.products', 'user', 'facture']));
+        return response()->json([
+            'success' => true,
+            'data' => $paiement->load(['commande.table', 'commande.produits', 'user', 'facture']),
+        ]);
     }
 
     /**
@@ -49,63 +55,86 @@ class PaiementController extends Controller
         $validated = $request->validate([
             'commande_id' => 'required|exists:commandes,id',
             'moyen_paiement' => ['required', Rule::enum(MoyenPaiement::class)],
-            'montant_recu' => 'nullable|numeric|min:0', // Pour espèces
             'transaction_id' => 'nullable|string', // Pour mobile money
             'notes' => 'nullable|string',
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
             $commande = Commande::with('table')->findOrFail($validated['commande_id']);
+            $user = $request->user();
+            $moyenPaiement = MoyenPaiement::from($validated['moyen_paiement']);
 
             // Vérifier si la commande n'est pas déjà payée
             if ($commande->paiements()->where('statut', StatutPaiement::Valide)->exists()) {
-                return response()->json(['message' => 'Cette commande a déjà été payée.'], 409);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette commande a déjà été payée.',
+                ], 409);
+            }
+
+            // Les clients ne peuvent initier que des paiements Wave ou Orange Money
+            if ($user->hasRole('client') && !in_array($moyenPaiement, [MoyenPaiement::Wave, MoyenPaiement::OrangeMoney])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez initier que des paiements Wave ou Orange Money. Pour le paiement en espèces, veuillez contacter le serveur.',
+                ], 403);
+            }
+
+            // Vérifier que le client est propriétaire de la commande
+            if ($user->hasRole('client') && $commande->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'êtes pas autorisé à payer cette commande.',
+                ], 403);
             }
 
             // Créer le paiement
             $paiement = Paiement::create([
                 'commande_id' => $commande->id,
-                'user_id' => $request->user()->id,
-                'montant' => $commande->total_amount,
-                'moyen_paiement' => $validated['moyen_paiement'],
+                'user_id' => $user->id,
+                'montant' => $commande->montant_total,
+                'moyen_paiement' => $moyenPaiement,
                 'statut' => StatutPaiement::EnAttente,
-                'montant_recu' => $validated['montant_recu'] ?? null,
                 'transaction_id' => $validated['transaction_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Si paiement en espèces, calculer la monnaie
-            if ($paiement->moyen_paiement === MoyenPaiement::Especes) {
-                if (!$validated['montant_recu'] || $validated['montant_recu'] < $commande->total_amount) {
-                    DB::rollBack();
-                    return response()->json([
-                        'message' => 'Le montant reçu doit être supérieur ou égal au montant de la commande.',
-                    ], 422);
-                }
-                $paiement->calculerMonnaie();
-                
-                // Valider automatiquement le paiement espèces
-                $paiement->valider();
+            // Pour Wave et Orange Money : le paiement reste en attente, le client doit confirmer
+            // Pour Espèces : le gérant doit utiliser payerEspeces
+            // Pour Carte Bancaire : peut être validé directement selon le cas
+
+            // Mettre la table en statut "en paiement" si ce n'est pas déjà le cas
+            if ($commande->table->statut !== \App\Enums\TableStatus::EnPaiement) {
+                $commande->table->enPaiement();
             }
 
-            // Mettre la table en statut "en paiement"
-            $commande->table->enPaiement();
-
             return response()->json([
+                'success' => true,
                 'message' => 'Paiement initié avec succès',
-                'paiement' => $paiement->load(['commande', 'facture']),
-                'monnaie_rendue' => $paiement->monnaie_rendue,
+                'data' => $paiement->load(['commande', 'facture']),
             ], 201);
         });
     }
 
     /**
-     * Valide un paiement (pour mobile money principalement)
+     * Valide un paiement (pour mobile money - Wave, Orange Money)
+     * Le client confirme d'abord, puis le gérant valide
      */
     public function valider(Request $request, Paiement $paiement)
     {
         if ($paiement->statut === StatutPaiement::Valide) {
-            return response()->json(['message' => 'Ce paiement est déjà validé.'], 409);
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce paiement est déjà validé.',
+            ], 409);
+        }
+
+        // Vérifier que c'est un paiement mobile money (Wave ou Orange Money)
+        if (!in_array($paiement->moyen_paiement, [MoyenPaiement::Wave, MoyenPaiement::OrangeMoney])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette méthode de validation ne s\'applique qu\'aux paiements mobile money.',
+            ], 400);
         }
 
         return DB::transaction(function () use ($paiement, $request) {
@@ -116,17 +145,65 @@ class PaiementController extends Controller
             $facture = $this->factureService->genererFacture($paiement->commande, $paiement);
 
             // Mettre à jour le statut de la commande
-            $paiement->commande->update(['status' => OrderStatus::Completed]);
+            $paiement->commande->update(['statut' => OrderStatus::Terminee]);
 
             // Libérer la table
             $paiement->commande->table->liberer();
 
             return response()->json([
+                'success' => true,
                 'message' => 'Paiement validé avec succès',
-                'paiement' => $paiement->fresh()->load('facture'),
-                'facture' => $facture,
+                'data' => [
+                    'paiement' => $paiement->fresh()->load('facture'),
+                    'facture' => $facture,
+                ],
             ]);
         });
+    }
+
+    /**
+     * Client confirme un paiement mobile money (Wave, Orange Money)
+     * POST /api/paiements/{id}/confirmer
+     */
+    public function confirmer(Request $request, Paiement $paiement)
+    {
+        if ($paiement->statut !== StatutPaiement::EnAttente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce paiement ne peut plus être confirmé.',
+            ], 400);
+        }
+
+        // Vérifier que c'est un paiement mobile money
+        if (!in_array($paiement->moyen_paiement, [MoyenPaiement::Wave, MoyenPaiement::OrangeMoney])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette méthode de confirmation ne s\'applique qu\'aux paiements mobile money.',
+            ], 400);
+        }
+
+        // Vérifier que le client est le propriétaire de la commande
+        $user = auth()->user();
+        if ($user->hasRole('client') && $paiement->commande->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à confirmer ce paiement.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'transaction_id' => 'required|string|max:255',
+        ]);
+
+        // Mettre à jour le transaction_id
+        $paiement->update(['transaction_id' => $validated['transaction_id']]);
+
+        // Le paiement reste en attente, le gérant devra le valider
+        return response()->json([
+            'success' => true,
+            'message' => 'Paiement confirmé. En attente de validation par le gérant.',
+            'data' => $paiement->fresh()->load(['commande', 'facture']),
+        ]);
     }
 
     /**
@@ -135,7 +212,10 @@ class PaiementController extends Controller
     public function echouer(Paiement $paiement)
     {
         if ($paiement->statut === StatutPaiement::Valide) {
-            return response()->json(['message' => 'Impossible de marquer comme échoué un paiement déjà validé.'], 409);
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de marquer comme échoué un paiement déjà validé.',
+            ], 409);
         }
 
         return DB::transaction(function () use ($paiement) {
@@ -145,8 +225,9 @@ class PaiementController extends Controller
             $paiement->commande->table->occuper();
 
             return response()->json([
+                'success' => true,
                 'message' => 'Paiement marqué comme échoué',
-                'paiement' => $paiement,
+                'data' => $paiement->fresh(),
             ]);
         });
     }
@@ -157,7 +238,10 @@ class PaiementController extends Controller
     public function annuler(Paiement $paiement)
     {
         if ($paiement->statut === StatutPaiement::Valide) {
-            return response()->json(['message' => 'Impossible d\'annuler un paiement validé.'], 409);
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible d\'annuler un paiement validé.',
+            ], 409);
         }
 
         return DB::transaction(function () use ($paiement) {
@@ -167,8 +251,9 @@ class PaiementController extends Controller
             $paiement->commande->table->occuper();
 
             return response()->json([
+                'success' => true,
                 'message' => 'Paiement annulé',
-                'paiement' => $paiement,
+                'data' => $paiement->fresh(),
             ]);
         });
     }
@@ -179,7 +264,10 @@ class PaiementController extends Controller
     public function telechargerFacture(Paiement $paiement)
     {
         if (!$paiement->facture) {
-            return response()->json(['message' => 'Aucune facture disponible pour ce paiement.'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune facture disponible pour ce paiement.',
+            ], 404);
         }
 
         return $this->factureService->telechargerFacture($paiement->facture);
@@ -201,16 +289,22 @@ class PaiementController extends Controller
 
             // Vérifier si la commande n'est pas déjà payée
             if ($commande->paiements()->where('statut', StatutPaiement::Valide)->exists()) {
-                return response()->json(['message' => 'Cette commande a déjà été payée.'], 409);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette commande a déjà été payée.',
+                ], 409);
             }
 
             // Vérifier le montant reçu
-            if ($validated['montant_recu'] < $commande->total_amount) {
+            if ($validated['montant_recu'] < $commande->montant_total) {
                 return response()->json([
+                    'success' => false,
                     'message' => 'Le montant reçu est insuffisant.',
-                    'montant_requis' => $commande->total_amount,
-                    'montant_recu' => $validated['montant_recu'],
-                    'manquant' => $commande->total_amount - $validated['montant_recu'],
+                    'data' => [
+                        'montant_requis' => $commande->montant_total,
+                        'montant_recu' => $validated['montant_recu'],
+                        'manquant' => $commande->montant_total - $validated['montant_recu'],
+                    ],
                 ], 422);
             }
 
@@ -218,9 +312,9 @@ class PaiementController extends Controller
             $paiement = Paiement::create([
                 'commande_id' => $commande->id,
                 'user_id' => $request->user()->id,
-                'montant' => $commande->total_amount,
+                'montant' => $commande->montant_total,
                 'moyen_paiement' => MoyenPaiement::Especes,
-                'statut' => StatutPaiement::Valide, // Validé directement
+                'statut' => StatutPaiement::Valide, // Validé directement pour espèces
                 'montant_recu' => $validated['montant_recu'],
                 'notes' => $validated['notes'] ?? null,
             ]);
@@ -232,16 +326,19 @@ class PaiementController extends Controller
             $facture = $this->factureService->genererFacture($commande, $paiement);
 
             // Terminer la commande
-            $commande->update(['status' => OrderStatus::Completed]);
+            $commande->update(['statut' => OrderStatus::Terminee]);
 
             // Libérer la table
             $commande->table->liberer();
 
             return response()->json([
+                'success' => true,
                 'message' => 'Paiement espèces effectué avec succès',
-                'paiement' => $paiement->fresh()->load('facture'),
-                'facture' => $facture,
-                'monnaie_rendue' => $paiement->monnaie_rendue,
+                'data' => [
+                    'paiement' => $paiement->fresh()->load('facture'),
+                    'facture' => $facture,
+                    'monnaie_rendue' => $paiement->monnaie_rendue,
+                ],
             ], 201);
         });
     }
