@@ -57,6 +57,26 @@ class PaiementController extends Controller
      */
     public function traiterPaiement(Request $request, Commande $commande)
     {
+        // Si c'est une requête GET (rafraîchissement de page ou retour navigateur), rediriger
+        if ($request->isMethod('GET')) {
+            // Si la commande est déjà payée, rediriger vers la facture si elle existe
+            if ($commande->statut === OrderStatus::Terminee) {
+                $facture = $commande->paiements()->where('statut', \App\Enums\StatutPaiement::Valide)
+                    ->latest()
+                    ->first()
+                    ?->facture;
+                
+                if ($facture) {
+                    return redirect()->route('caisse.facture', $facture)
+                                    ->with('info', 'Cette commande a déjà été payée.');
+                }
+            }
+            
+            // Sinon, rediriger vers la page de paiement
+            return redirect()->route('caisse.payer', $commande)
+                            ->with('info', 'Veuillez utiliser le formulaire de paiement.');
+        }
+
         $validated = $request->validate([
             'moyen_paiement' => ['required', Rule::enum(MoyenPaiement::class)],
             'montant_recu' => 'nullable|numeric|min:0',
@@ -65,6 +85,17 @@ class PaiementController extends Controller
         ]);
 
         if ($commande->statut === OrderStatus::Terminee) {
+            // Vérifier si une facture existe déjà pour cette commande
+            $facture = $commande->paiements()->where('statut', \App\Enums\StatutPaiement::Valide)
+                ->latest()
+                ->first()
+                ?->facture;
+            
+            if ($facture) {
+                return redirect()->route('caisse.facture', $facture)
+                                ->with('error', 'Cette commande a déjà été payée.');
+            }
+            
             return redirect()->route('caisse.index')
                             ->with('error', 'Cette commande a déjà été payée.');
         }
@@ -113,11 +144,26 @@ class PaiementController extends Controller
             // Libérer la table
             $commande->table->liberer();
 
-            // Générer la facture
-            $facture = $this->factureService->genererFacture($commande, $paiement);
+            try {
+                // Générer la facture
+                $facture = $this->factureService->genererFacture($commande, $paiement);
 
-            return redirect()->route('caisse.facture', $facture)
-                            ->with('success', 'Paiement enregistré avec succès !');
+                // Utiliser redirect avec code 303 (See Other) pour forcer une nouvelle requête GET
+                return redirect()->route('caisse.facture', $facture)
+                                ->with('success', 'Paiement enregistré avec succès !')
+                                ->setStatusCode(303);
+            } catch (\Exception $e) {
+                // En cas d'erreur lors de la génération de la facture, rediriger quand même vers la caisse
+                \Log::error('Erreur lors de la génération de la facture', [
+                    'commande_id' => $commande->id,
+                    'paiement_id' => $paiement->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                
+                return redirect()->route('caisse.index')
+                                ->with('warning', 'Paiement enregistré avec succès, mais erreur lors de la génération de la facture. Le paiement a été enregistré (ID: ' . $paiement->id . ').');
+            }
         });
     }
 
@@ -135,14 +181,20 @@ class PaiementController extends Controller
      */
     public function telechargerFacture(Facture $facture)
     {
-        if (!$facture->chemin_pdf) {
+        if (!$facture->fichier_pdf) {
             return back()->with('error', 'Aucun fichier PDF disponible pour cette facture.');
         }
 
-        return response()->download(
-            storage_path('app/' . $facture->chemin_pdf),
-            'facture-' . $facture->numero_facture . '.pdf'
-        );
+        try {
+            return $this->factureService->telechargerFacture($facture);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du téléchargement de la facture', [
+                'facture_id' => $facture->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return back()->with('error', 'Erreur lors du téléchargement du PDF de la facture.');
+        }
     }
 
     /**
