@@ -505,7 +505,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     // Organiser les produits par catégorie
     Map<int, List<Product>> productsByCategory = {};
     for (var product in products) {
-      final categoryId = product.categorieId ?? 0;
+      final categoryId = product.categorieId;
       if (!productsByCategory.containsKey(categoryId)) {
         productsByCategory[categoryId] = [];
       }
