@@ -102,7 +102,7 @@ class PaiementController extends Controller
                 'montant_recu' => $montantRecu,
                 'monnaie_rendue' => $monnaieRendue,
                 'statut' => $statutPaiement,
-                'reference_transaction' => $validated['reference_transaction'] ?? null,
+                'transaction_id' => $validated['reference_transaction'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
@@ -113,8 +113,8 @@ class PaiementController extends Controller
             // Libérer la table
             $commande->table->liberer();
 
-            // Générer la facture PDF
-            $facture = $this->factureService->genererFacturePdf($commande, $paiement);
+            // Générer la facture
+            $facture = $this->factureService->genererFacture($commande, $paiement);
 
             return redirect()->route('caisse.facture', $facture)
                             ->with('success', 'Paiement enregistré avec succès !');

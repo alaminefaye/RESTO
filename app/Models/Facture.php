@@ -40,7 +40,7 @@ class Facture extends Model
     // Accessor for PDF URL
     public function getPdfUrlAttribute(): ?string
     {
-        return $this->fichier_pdf ? Storage::url($this->fichier_pdf) : null;
+        return $this->fichier_pdf ? Storage::disk('public')->url($this->fichier_pdf) : null;
     }
 
     // Generate unique invoice number

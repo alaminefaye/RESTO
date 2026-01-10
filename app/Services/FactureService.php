@@ -23,7 +23,7 @@ class FactureService
             'commande_id' => $commande->id,
             'paiement_id' => $paiement->id,
             'numero_facture' => $numeroFacture,
-            'montant_total' => $commande->total_amount,
+            'montant_total' => $commande->montant_total,
             'montant_taxe' => 0, // À calculer si TVA applicable
         ]);
 
@@ -41,14 +41,14 @@ class FactureService
     private function genererPDF(Facture $facture): string
     {
         // Charger la facture avec toutes ses relations
-        $facture->load(['commande.table', 'commande.products', 'commande.user', 'paiement']);
+        $facture->load(['commande.table', 'commande.produits', 'commande.user', 'paiement']);
 
         // Préparer les données pour le PDF
         $data = [
             'facture' => $facture,
             'commande' => $facture->commande,
             'table' => $facture->commande->table,
-            'products' => $facture->commande->products,
+            'products' => $facture->commande->produits, // Alias pour la vue
             'paiement' => $facture->paiement,
             'restaurant' => [
                 'nom' => config('app.name', 'Restaurant'),
@@ -65,10 +65,11 @@ class FactureService
         $fileName = "facture-{$facture->numero_facture}.pdf";
         $path = "factures/{$fileName}";
 
-        // Sauvegarder le PDF
+        // Sauvegarder le PDF dans le disque public
         Storage::disk('public')->put($path, $pdf->output());
 
-        return "public/{$path}";
+        // Retourner le chemin relatif au storage (sans "public/")
+        return $path;
     }
 
     /**
@@ -76,7 +77,11 @@ class FactureService
      */
     public function telechargerFacture(Facture $facture): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $filePath = Storage::path($facture->fichier_pdf);
+        $filePath = Storage::disk('public')->path($facture->fichier_pdf);
+        
+        if (!file_exists($filePath)) {
+            throw new \Exception("Le fichier PDF de la facture n'existe pas.");
+        }
         
         return response()->download($filePath, "facture-{$facture->numero_facture}.pdf");
     }
@@ -87,8 +92,8 @@ class FactureService
     public function regenererPDF(Facture $facture): Facture
     {
         // Supprimer l'ancien PDF si existe
-        if ($facture->fichier_pdf && Storage::exists($facture->fichier_pdf)) {
-            Storage::delete($facture->fichier_pdf);
+        if ($facture->fichier_pdf && Storage::disk('public')->exists($facture->fichier_pdf)) {
+            Storage::disk('public')->delete($facture->fichier_pdf);
         }
 
         // Générer un nouveau PDF
