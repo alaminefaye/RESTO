@@ -85,9 +85,9 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          _invoice != null ? 'Facture #${_invoice!.numeroFacture}' : 'Facture',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Reçu',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (_invoice?.pdfUrl != null)
@@ -183,7 +183,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             child: Column(
               children: [
                 const Text(
-                  'FACTURE',
+                  'RECU',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
