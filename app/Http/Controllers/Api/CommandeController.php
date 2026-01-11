@@ -20,7 +20,13 @@ class CommandeController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = Commande::with(['table', 'user', 'produits']);
+
+        // Si l'utilisateur est un client, filtrer par ses commandes uniquement
+        if ($user->hasRole('client')) {
+            $query->where('user_id', $user->id);
+        }
 
         // Filtres
         if ($request->has('table_id')) {
@@ -33,9 +39,14 @@ class CommandeController extends Controller
 
         if ($request->has('date')) {
             $query->whereDate('created_at', $request->date);
+        } elseif ($request->has('all') && $request->boolean('all')) {
+            // Si le paramètre 'all' est présent et vrai, récupérer toutes les commandes
+            // (pas de filtre de date)
         } else {
-            // Par défaut, commandes du jour
-            $query->duJour();
+            // Par défaut, commandes du jour (sauf pour les clients qui voient tout)
+            if (!$user->hasRole('client')) {
+                $query->duJour();
+            }
         }
 
         $commandes = $query->orderBy('created_at', 'desc')->get();
