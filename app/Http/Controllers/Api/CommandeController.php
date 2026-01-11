@@ -23,9 +23,10 @@ class CommandeController extends Controller
         $user = auth()->user();
         $query = Commande::with(['table', 'user', 'produits']);
 
-        // Si l'utilisateur est un client, filtrer par ses commandes uniquement
+        // Si l'utilisateur est un client, filtrer par ses commandes uniquement et seulement terminées
         if ($user->hasRole('client')) {
-            $query->where('user_id', $user->id);
+            $query->where('user_id', $user->id)
+                  ->where('statut', OrderStatus::Terminee);
         }
 
         // Filtres
@@ -43,7 +44,7 @@ class CommandeController extends Controller
             // Si le paramètre 'all' est présent et vrai, récupérer toutes les commandes
             // (pas de filtre de date)
         } else {
-            // Par défaut, commandes du jour (sauf pour les clients qui voient tout)
+            // Par défaut, commandes du jour (sauf pour les clients qui voient toutes leurs commandes terminées)
             if (!$user->hasRole('client')) {
                 $query->duJour();
             }
