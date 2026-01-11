@@ -9,6 +9,7 @@ import '../../services/menu_service.dart';
 import '../../services/payment_service.dart';
 import '../../utils/formatters.dart';
 import 'payment_screen.dart';
+import 'invoice_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -347,6 +348,30 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (_order!.statut == OrderStatus.terminee)
+                          // Bouton "Voir la facture" si commande terminée (payée)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showInvoiceScreen,
+                              icon: const Icon(Icons.receipt_long, color: Colors.white),
+                              label: const Text(
+                                'Voir la facture',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -719,6 +744,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       // Recharger la commande après paiement
       _loadOrder();
     });
+  }
+
+  void _showInvoiceScreen() {
+    if (_order == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvoiceScreen(orderId: _order!.id),
+      ),
+    );
   }
 
 }

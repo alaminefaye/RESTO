@@ -135,6 +135,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/lancer', [App\Http\Controllers\Api\CommandeController::class, 'lancer'])
             ->middleware('permission:update_orders');
         
+        // Récupérer la facture d'une commande (client peut voir sa facture, gérant peut toutes)
+        Route::get('/{id}/facture', [App\Http\Controllers\Api\CommandeController::class, 'getFacture'])
+            ->middleware('permission:view_orders');
+        
         // Changer le statut (serveur, caissier, manager, admin uniquement - pas les clients)
         Route::patch('/{id}/statut', [App\Http\Controllers\Api\CommandeController::class, 'updateStatut'])
             ->middleware('permission:update_order_status');

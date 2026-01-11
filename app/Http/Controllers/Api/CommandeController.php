@@ -7,6 +7,7 @@ use App\Models\Commande;
 use App\Models\Product;
 use App\Models\Table;
 use App\Enums\OrderStatus;
+use App\Enums\StatutPaiement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -171,7 +172,7 @@ class CommandeController extends Controller
      */
     public function show($id)
     {
-        $commande = Commande::with(['table', 'user', 'produits'])->find($id);
+        $commande = Commande::with(['table', 'user', 'produits', 'paiements.facture'])->find($id);
 
         if (!$commande) {
             return response()->json([
@@ -183,6 +184,59 @@ class CommandeController extends Controller
         return response()->json([
             'success' => true,
             'data' => $this->formatCommande($commande),
+        ]);
+    }
+
+    /**
+     * Récupérer la facture d'une commande
+     * GET /api/commandes/{id}/facture
+     */
+    public function getFacture($id)
+    {
+        $commande = Commande::with(['table', 'user', 'produits'])->find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        // Récupérer le paiement validé de la commande
+        $paiementValide = $commande->paiements()->where('statut', \App\Enums\StatutPaiement::Valide)->latest()->first();
+
+        if (!$paiementValide || !$paiementValide->facture) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune facture disponible pour cette commande.',
+            ], 404);
+        }
+
+        $facture = $paiementValide->facture->load(['commande.table', 'commande.produits', 'paiement']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => (int) $facture->id,
+                'numero_facture' => $facture->numero_facture,
+                'commande_id' => (int) $facture->commande_id,
+                'paiement_id' => (int) $facture->paiement_id,
+                'montant_total' => (float) $facture->montant_total,
+                'montant_taxe' => (float) $facture->montant_taxe,
+                'pdf_url' => $facture->pdf_url,
+                'created_at' => $facture->created_at->toIso8601String(),
+                'commande' => $this->formatCommande($commande),
+                'paiement' => [
+                    'id' => (int) $paiementValide->id,
+                    'montant' => (float) $paiementValide->montant,
+                    'moyen_paiement' => $paiementValide->moyen_paiement->value,
+                    'statut' => $paiementValide->statut->value,
+                    'transaction_id' => $paiementValide->transaction_id,
+                    'montant_recu' => $paiementValide->montant_recu ? (float) $paiementValide->montant_recu : null,
+                    'monnaie_rendue' => $paiementValide->monnaie_rendue ? (float) $paiementValide->monnaie_rendue : null,
+                    'created_at' => $paiementValide->created_at->toIso8601String(),
+                ],
+            ],
         ]);
     }
 
