@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/order_service.dart';
 import '../../models/order.dart';
 import '../../utils/formatters.dart';
+import '../orders/invoice_screen.dart';
 
 class OrdersHistoryScreen extends StatefulWidget {
   const OrdersHistoryScreen({super.key});
@@ -26,7 +27,8 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       _isLoading = true;
     });
     try {
-      final orders = await _orderService.getOrders();
+      // Charger uniquement les commandes terminées
+      final orders = await _orderService.getHistoryOrders();
       setState(() {
         _orders = orders;
         _isLoading = false;
@@ -35,7 +37,7 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       setState(() {
         _isLoading = false;
       });
-      debugPrint('Erreur lors du chargement des commandes: $e');
+      debugPrint('Erreur lors du chargement de l\'historique: $e');
     }
   }
 
@@ -73,7 +75,7 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Aucune commande',
+                        'Aucune commande terminée',
                         style: TextStyle(
                           color: Colors.grey[300],
                           fontSize: 18,
@@ -82,7 +84,8 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Vous n\'avez pas encore passé de commande',
+                        'Vos commandes terminées apparaîtront ici\navec la possibilité de voir vos reçus',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.grey[500],
                           fontSize: 14,
@@ -115,7 +118,13 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: Naviguer vers les détails de la commande
+          // Naviguer vers l'écran de facture (reçu) pour les commandes terminées
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InvoiceScreen(orderId: order.id),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -291,6 +300,39 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                     ),
                   ),
               ],
+              // Bouton "Voir le reçu" pour les commandes terminées
+              const SizedBox(height: 12),
+              const Divider(color: Colors.grey),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InvoiceScreen(orderId: order.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Voir le reçu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

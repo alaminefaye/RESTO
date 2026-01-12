@@ -83,6 +83,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          if (_order != null && _order!.statut == OrderStatus.terminee)
+            IconButton(
+              icon: const Icon(Icons.receipt_long, color: Colors.purple),
+              onPressed: _showInvoiceScreen,
+              tooltip: 'Reçu',
+            ),
           if (_order != null && _canAddProducts)
             IconButton(
               icon: const Icon(Icons.add_shopping_cart, color: Colors.orange),
@@ -348,30 +354,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          )
-                        else if (_order!.statut == OrderStatus.terminee)
-                          // Bouton "Voir la facture" si commande terminée (payée)
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _showInvoiceScreen,
-                              icon: const Icon(Icons.receipt_long, color: Colors.white),
-                              label: const Text(
-                                'Voir la facture',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),

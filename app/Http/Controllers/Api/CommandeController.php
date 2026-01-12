@@ -23,30 +23,44 @@ class CommandeController extends Controller
         $user = auth()->user();
         $query = Commande::with(['table', 'user', 'produits']);
 
-        // Si l'utilisateur est un client, filtrer par ses commandes uniquement et seulement terminées
+        // Si l'utilisateur est un client, filtrer par ses commandes uniquement
         if ($user->hasRole('client')) {
-            $query->where('user_id', $user->id)
-                  ->where('statut', OrderStatus::Terminee);
+            $query->where('user_id', $user->id);
         }
 
-        // Filtres
-        if ($request->has('table_id')) {
-            $query->ofTable($request->table_id);
+        // Filtre spécial pour "Mes commandes" (current) : commandes du jour non terminées
+        if ($request->has('filter') && $request->filter === 'current') {
+            $query->duJour()
+                  ->where('statut', '!=', OrderStatus::Terminee);
         }
-
-        if ($request->has('statut')) {
-            $query->ofStatut($request->statut);
+        // Filtre spécial pour "Historique" (history) : commandes terminées uniquement
+        elseif ($request->has('filter') && $request->filter === 'history') {
+            $query->where('statut', OrderStatus::Terminee);
         }
+        // Comportement par défaut (pour compatibilité)
+        else {
+            // Filtres standards
+            if ($request->has('table_id')) {
+                $query->ofTable($request->table_id);
+            }
 
-        if ($request->has('date')) {
-            $query->whereDate('created_at', $request->date);
-        } elseif ($request->has('all') && $request->boolean('all')) {
-            // Si le paramètre 'all' est présent et vrai, récupérer toutes les commandes
-            // (pas de filtre de date)
-        } else {
-            // Par défaut, commandes du jour (sauf pour les clients qui voient toutes leurs commandes terminées)
-            if (!$user->hasRole('client')) {
-                $query->duJour();
+            if ($request->has('statut')) {
+                $query->ofStatut($request->statut);
+            }
+
+            if ($request->has('date')) {
+                $query->whereDate('created_at', $request->date);
+            } elseif ($request->has('all') && $request->boolean('all')) {
+                // Si le paramètre 'all' est présent et vrai, récupérer toutes les commandes
+                // (pas de filtre de date)
+            } else {
+                // Par défaut, commandes du jour (sauf pour les clients qui voient toutes leurs commandes terminées)
+                if (!$user->hasRole('client')) {
+                    $query->duJour();
+                } else {
+                    // Pour les clients, par défaut on montre les terminées (historique)
+                    $query->where('statut', OrderStatus::Terminee);
+                }
             }
         }
 

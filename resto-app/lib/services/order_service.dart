@@ -81,10 +81,15 @@ class OrderService {
     }
   }
 
-  // Récupérer toutes les commandes
+  // Récupérer toutes les commandes (compatibilité)
   Future<List<Order>> getOrders() async {
+    return getHistoryOrders();
+  }
+
+  // Récupérer les commandes du jour non terminées (Mes commandes)
+  Future<List<Order>> getCurrentOrders() async {
     try {
-      final response = await _apiService.get(ApiConfig.orders);
+      final response = await _apiService.get('${ApiConfig.orders}?filter=current');
       if (response.statusCode == 200) {
         final data = response.data;
         // L'API peut retourner directement une liste ou dans 'data'
@@ -115,13 +120,58 @@ class OrderService {
       }
       return [];
     } on DioException catch (e) {
-      print('Erreur lors de la récupération des commandes: ${e.message}');
+      print('Erreur lors de la récupération des commandes en cours: ${e.message}');
       if (e.response != null) {
         print('Response data: ${e.response?.data}');
       }
       return [];
     } catch (e) {
-      print('Erreur inattendue lors de la récupération des commandes: $e');
+      print('Erreur inattendue lors de la récupération des commandes en cours: $e');
+      return [];
+    }
+  }
+
+  // Récupérer les commandes terminées (Historique)
+  Future<List<Order>> getHistoryOrders() async {
+    try {
+      final response = await _apiService.get('${ApiConfig.orders}?filter=history');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // L'API peut retourner directement une liste ou dans 'data'
+        List ordersData;
+        if (data is List) {
+          ordersData = data;
+        } else if (data is Map && data['data'] != null) {
+          ordersData = data['data'] as List;
+        } else {
+          return [];
+        }
+        
+        // Parsing sécurisé avec gestion des erreurs
+        List<Order> orders = [];
+        for (var json in ordersData) {
+          try {
+            if (json is Map<String, dynamic>) {
+              final order = Order.fromJson(json);
+              orders.add(order);
+            }
+          } catch (e) {
+            print('Erreur parsing commande: $e');
+            print('JSON: $json');
+            // Continue avec les autres commandes même si une échoue
+          }
+        }
+        return orders;
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Erreur lors de la récupération de l\'historique: ${e.message}');
+      if (e.response != null) {
+        print('Response data: ${e.response?.data}');
+      }
+      return [];
+    } catch (e) {
+      print('Erreur inattendue lors de la récupération de l\'historique: $e');
       return [];
     }
   }

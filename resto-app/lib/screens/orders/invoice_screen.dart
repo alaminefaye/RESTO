@@ -173,72 +173,125 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête de la facture
+          // En-tête de la facture amélioré
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.purple.shade900,
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.purple.shade900,
+                  Colors.purple.shade800,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Column(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'RECU',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _invoice!.numeroFacture,
-                  style: TextStyle(
-                    color: Colors.purple.shade200,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    letterSpacing: 3,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  Formatters.formatDateTime(_invoice!.createdAt),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  child: Text(
+                    _invoice!.numeroFacture,
+                    style: TextStyle(
+                      color: Colors.purple.shade100,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      Formatters.formatDateTime(_invoice!.createdAt),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
 
-          // Informations de la commande
+          // Informations de la commande améliorées
           if (commande != null) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey[700]!,
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.restaurant, color: Colors.orange, size: 20),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.restaurant, color: Colors.orange, size: 24),
+                      ),
+                      const SizedBox(width: 12),
                       const Text(
                         'Informations de la commande',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildInfoRow(
                     Icons.table_restaurant,
                     'Table',
@@ -246,11 +299,13 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         ? 'Table ${commande.table!.numero}'
                         : 'Table non assignée',
                   ),
+                  const Divider(color: Colors.grey, height: 24),
                   _buildInfoRow(
                     Icons.receipt,
                     'Commande',
                     'Commande #${commande.id}',
                   ),
+                  const Divider(color: Colors.grey, height: 24),
                   _buildInfoRow(
                     Icons.calendar_today,
                     'Date',
@@ -261,32 +316,43 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Articles commandés
+            // Articles commandés améliorés
             if (commande.produits != null && commande.produits!.isNotEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.grey[700]!,
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.restaurant_menu, color: Colors.orange, size: 20),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.restaurant_menu, color: Colors.orange, size: 24),
+                        ),
+                        const SizedBox(width: 12),
                         const Text(
                           'Articles commandés',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     ...commande.produits!.map((item) => _buildOrderItem(item)),
                   ],
                 ),
@@ -295,76 +361,108 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             ],
           ],
 
-          // Informations de paiement
+          // Informations de paiement améliorées
           if (paiement != null) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.green.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.payment, color: Colors.green, size: 20),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.payment, color: Colors.green, size: 24),
+                      ),
+                      const SizedBox(width: 12),
                       const Text(
                         'Paiement',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildInfoRow(
                     Icons.account_balance_wallet,
                     'Moyen de paiement',
                     _getPaymentMethodName(paiement.moyenPaiement),
                   ),
+                  const Divider(color: Colors.grey, height: 24),
                   _buildInfoRow(
                     Icons.money,
                     'Montant payé',
                     Formatters.formatCurrency(paiement.montant),
                   ),
-                  if (paiement.montantRecu != null && paiement.montantRecu! > paiement.montant)
+                  if (paiement.montantRecu != null && paiement.montantRecu! > paiement.montant) ...[
+                    const Divider(color: Colors.grey, height: 24),
                     _buildInfoRow(
                       Icons.receipt_long,
                       'Montant reçu',
                       Formatters.formatCurrency(paiement.montantRecu!),
                     ),
-                  if (paiement.monnaieRendue != null && paiement.monnaieRendue! > 0)
+                  ],
+                  if (paiement.monnaieRendue != null && paiement.monnaieRendue! > 0) ...[
+                    const Divider(color: Colors.grey, height: 24),
                     _buildInfoRow(
                       Icons.change_circle,
                       'Monnaie rendue',
                       Formatters.formatCurrency(paiement.monnaieRendue!),
                     ),
-                  if (paiement.transactionId != null && paiement.transactionId!.isNotEmpty)
+                  ],
+                  if (paiement.transactionId != null && paiement.transactionId!.isNotEmpty) ...[
+                    const Divider(color: Colors.grey, height: 24),
                     _buildInfoRow(
                       Icons.receipt,
                       'Référence transaction',
                       paiement.transactionId!,
                     ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 16),
           ],
 
-          // Totaux
+          // Totaux améliorés
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.purple.withOpacity(0.25),
+                  Colors.purple.shade900.withOpacity(0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.purple.withOpacity(0.5),
+                color: Colors.purple.withOpacity(0.6),
                 width: 2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -372,16 +470,16 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Sous-total',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Colors.grey[300],
                           fontSize: 16,
                         ),
                       ),
                       Text(
                         Formatters.formatCurrency(_invoice!.montantTotal - _invoice!.montantTaxe),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -389,20 +487,20 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Taxe',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Colors.grey[300],
                           fontSize: 16,
                         ),
                       ),
                       Text(
                         Formatters.formatCurrency(_invoice!.montantTaxe),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -410,7 +508,13 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                       ),
                     ],
                   ),
-                  const Divider(color: Colors.white30, height: 24),
+                  const SizedBox(height: 16),
+                  Divider(
+                    color: Colors.white.withOpacity(0.2),
+                    thickness: 1,
+                    height: 1,
+                  ),
+                  const SizedBox(height: 16),
                 ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -419,16 +523,24 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                       'TOTAL',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
                       ),
                     ),
-                    Text(
-                      Formatters.formatCurrency(_invoice!.montantTotal),
-                      style: TextStyle(
-                        color: Colors.purple.shade300,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade300.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        Formatters.formatCurrency(_invoice!.montantTotal),
+                        style: TextStyle(
+                          color: Colors.purple.shade100,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -507,44 +619,53 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
 
   Widget _buildOrderItem(orderItem) {
     // orderItem est un OrderItem (from Order model)
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[700],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey[600]!,
+          width: 1,
+        ),
+      ),
       child: Row(
         children: [
           // Image (si disponible)
           if (orderItem.image != null && orderItem.image!.isNotEmpty)
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               child: CachedNetworkImage(
                 imageUrl: orderItem.image!.startsWith('http')
                     ? orderItem.image!
                     : '${ApiConfig.serverBaseUrl}/storage/${orderItem.image}',
-                width: 50,
-                height: 50,
+                width: 60,
+                height: 60,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.grey[700],
+                  width: 60,
+                  height: 60,
+                  color: Colors.grey[600],
                   child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
                 errorWidget: (context, url, error) => Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.grey[700],
-                  child: Icon(Icons.restaurant_menu, size: 20, color: Colors.grey[400]),
+                  width: 60,
+                  height: 60,
+                  color: Colors.grey[600],
+                  child: Icon(Icons.restaurant_menu, size: 24, color: Colors.grey[400]),
                 ),
               ),
             )
           else
             Container(
-              width: 50,
-              height: 50,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.restaurant_menu, size: 20, color: Colors.grey[400]),
+              child: Icon(Icons.restaurant_menu, size: 24, color: Colors.grey[400]),
             ),
           const SizedBox(width: 12),
           // Info
@@ -557,11 +678,12 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: 16,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
                 Text(
                   '${Formatters.formatCurrency(orderItem.prix)} x ${orderItem.quantite}',
                   style: TextStyle(color: Colors.grey[400], fontSize: 13),
@@ -570,12 +692,19 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             ),
           ),
           // Total
-          Text(
-            Formatters.formatCurrency(orderItem.total),
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
-              fontSize: 15,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              Formatters.formatCurrency(orderItem.total),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+                fontSize: 16,
+              ),
             ),
           ),
         ],

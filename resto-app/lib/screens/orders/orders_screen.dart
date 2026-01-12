@@ -30,7 +30,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
 
     try {
-      final orders = await _orderService.getOrders();
+      // Charger uniquement les commandes du jour non terminées
+      final orders = await _orderService.getCurrentOrders();
 
       if (mounted) {
         setState(() {
@@ -70,7 +71,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Aucune commande',
+                        'Aucune commande en cours',
                         style: TextStyle(
                           color: Colors.grey[300],
                           fontSize: 18,
@@ -79,7 +80,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Vos commandes apparaîtront ici',
+                        'Vos commandes du jour en cours\napparaîtront ici',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.grey[500],
                           fontSize: 14,
