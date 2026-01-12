@@ -151,4 +151,12 @@ class Table extends Model
     {
         return $this->hasMany(Commande::class);
     }
+
+    /**
+     * Relation avec les réservations
+     */
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
 }

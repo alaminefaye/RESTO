@@ -182,4 +182,28 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{paiement}/facture', [App\Http\Controllers\Api\PaiementController::class, 'telechargerFacture'])
             ->middleware('permission:create_orders,generate_invoices');
     });
+    
+    // ==========================================
+    // RESERVATIONS - Gestion des réservations de tables
+    // ==========================================
+    Route::prefix('reservations')->group(function () {
+        // Vérifier la disponibilité d'une table
+        Route::post('/verifier-disponibilite', [App\Http\Controllers\Api\ReservationController::class, 'verifierDisponibilite']);
+        
+        // Liste des réservations
+        Route::get('/', [App\Http\Controllers\Api\ReservationController::class, 'index']);
+        
+        // Créer une réservation
+        Route::post('/', [App\Http\Controllers\Api\ReservationController::class, 'store']);
+        
+        // Détails d'une réservation
+        Route::get('/{id}', [App\Http\Controllers\Api\ReservationController::class, 'show']);
+        
+        // Confirmer une réservation (manager, admin uniquement)
+        Route::patch('/{id}/confirmer', [App\Http\Controllers\Api\ReservationController::class, 'confirmer'])
+            ->middleware('permission:manage_reservations');
+        
+        // Annuler une réservation (client peut annuler ses propres réservations, manager/admin peuvent toutes)
+        Route::patch('/{id}/annuler', [App\Http\Controllers\Api\ReservationController::class, 'annuler']);
+    });
 });

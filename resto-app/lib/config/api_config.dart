@@ -36,6 +36,12 @@ class ApiConfig {
   static String validatePayment(int id) => '/paiements/$id/valider';
   static const String payCash = '/paiements/especes';
 
+  // Reservations
+  static const String reservations = '/reservations';
+  static const String checkAvailability = '/reservations/verifier-disponibilite';
+  static String confirmReservation(int id) => '/reservations/$id/confirmer';
+  static String cancelReservation(int id) => '/reservations/$id/annuler';
+
   // Headers
   static Map<String, String> getHeaders(String? token) {
     return {
