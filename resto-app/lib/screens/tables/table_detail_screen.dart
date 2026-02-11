@@ -9,17 +9,20 @@ import '../menu/products_screen.dart';
 class TableDetailScreen extends StatelessWidget {
   final models.Table table;
 
-  const TableDetailScreen({
-    super.key,
-    required this.table,
-  });
+  const TableDetailScreen({super.key, required this.table});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
-        title: Text('Table ${table.numero}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Table ${table.numero}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -93,18 +96,25 @@ class TableDetailScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF2A2A2A),
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.white.withValues(alpha: 0.05),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       offset: const Offset(-1, -1),
                                       blurRadius: 2,
                                     ),
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.4),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       offset: const Offset(2, 2),
                                       blurRadius: 4,
                                     ),
@@ -136,7 +146,9 @@ class TableDetailScreen extends StatelessWidget {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: table.statut.color.withValues(alpha: 0.2),
+                                color: table.statut.color.withValues(
+                                  alpha: 0.2,
+                                ),
                                 offset: const Offset(0, 2),
                                 blurRadius: 4,
                               ),
@@ -180,7 +192,7 @@ class TableDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // QR Code
             if (table.qrCodeUrl.isNotEmpty)
               Container(
@@ -236,17 +248,14 @@ class TableDetailScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Scannez pour accéder au menu',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey[400], fontSize: 14),
                       ),
                     ],
                   ),
                 ),
               ),
             const SizedBox(height: 32),
-            
+
             // Bouton pour voir le menu
             Container(
               decoration: BoxDecoration(
@@ -352,4 +361,3 @@ class TableDetailScreen extends StatelessWidget {
     );
   }
 }
-

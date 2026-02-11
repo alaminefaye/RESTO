@@ -5,7 +5,8 @@ import '../../services/table_service.dart';
 import 'table_detail_screen.dart';
 
 class QrScanScreen extends StatefulWidget {
-  final bool returnTableOnly; // Si true, retourne juste la table au lieu de naviguer
+  final bool
+  returnTableOnly; // Si true, retourne juste la table au lieu de naviguer
 
   const QrScanScreen({super.key, this.returnTableOnly = false});
 
@@ -33,7 +34,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     if (barcode.rawValue == null) return;
 
     final qrData = barcode.rawValue!.trim();
-    
+
     // Vérifier si c'est le même QR code qu'on vient de scanner
     if (_lastScannedQr == qrData) {
       debugPrint('QR code déjà traité, ignoré: $qrData');
@@ -42,7 +43,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
     // Arrêter immédiatement le scanner pour éviter les scans multiples
     _controller.stop();
-    
+
     setState(() {
       _isProcessing = true;
       _lastScannedQr = qrData;
@@ -53,14 +54,14 @@ class _QrScanScreenState extends State<QrScanScreen> {
     // ou http://.../tables/{id} ou juste l'ID
     debugPrint('=== SCAN QR CODE ===');
     debugPrint('QR Code scanné (raw): $qrData');
-    
+
     try {
       int? tableId;
-      
+
       // Nettoyer l'URL (enlever les espaces, etc.)
       final cleanUrl = qrData.trim();
       debugPrint('URL nettoyée: $cleanUrl');
-      
+
       // Extraire l'ID de table de l'URL avec plusieurs méthodes
       // Méthode 1: Format standard /api/tables/{id}/menu ou /tables/{id}
       final tablesPattern = RegExp(r'/tables/(\d+)');
@@ -69,7 +70,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         tableId = int.tryParse(tablesMatch.group(1)!);
         debugPrint('ID extrait via /tables/ : $tableId');
       }
-      
+
       // Méthode 2: Format alternatif /table/{id} (sans 's')
       if (tableId == null) {
         final tablePattern = RegExp(r'/table/(\d+)');
@@ -79,7 +80,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
           debugPrint('ID extrait via /table/ : $tableId');
         }
       }
-      
+
       // Méthode 3: Essayer de parser directement comme ID (si le QR contient juste un nombre)
       if (tableId == null && RegExp(r'^\d+$').hasMatch(cleanUrl)) {
         tableId = int.tryParse(cleanUrl);
@@ -89,7 +90,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       }
 
       debugPrint('ID final extrait: $tableId');
-      
+
       if (tableId == null) {
         // Redémarrer le scanner pour permettre un nouveau scan
         _controller.start();
@@ -97,47 +98,59 @@ class _QrScanScreenState extends State<QrScanScreen> {
           _isProcessing = false;
           _lastScannedQr = null;
         });
-        throw Exception('Impossible d\'extraire l\'ID de la table depuis le QR code. Format attendu: http://.../api/tables/{id}/menu');
+        throw Exception(
+          'Impossible d\'extraire l\'ID de la table depuis le QR code. Format attendu: http://.../api/tables/{id}/menu',
+        );
       }
 
       // Si on a un ID, récupérer la table
       models.Table? table;
       debugPrint('Tentative de récupération de la table ID: $tableId');
-      
+
       // Essayer d'abord via l'endpoint menu (pour le scan QR)
       try {
         table = await _tableService.getTableFromMenuEndpoint(tableId);
-        debugPrint('Table récupérée via endpoint menu: ${table?.numero} (ID: ${table?.id})');
+        debugPrint(
+          'Table récupérée via endpoint menu: ${table?.numero} (ID: ${table?.id})',
+        );
       } catch (e) {
         debugPrint('Erreur avec endpoint menu: $e');
         debugPrint('Essai avec endpoint standard...');
         // Fallback: essayer avec l'endpoint standard
         try {
           table = await _tableService.getTable(tableId);
-          debugPrint('Table récupérée via endpoint standard: ${table?.numero} (ID: ${table?.id})');
+          debugPrint(
+            'Table récupérée via endpoint standard: ${table?.numero} (ID: ${table?.id})',
+          );
         } catch (e2) {
           debugPrint('Erreur avec endpoint standard: $e2');
-          throw Exception('Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData');
+          throw Exception(
+            'Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData',
+          );
         }
       }
 
       if (table == null) {
-        debugPrint('Table null après toutes les tentatives. ID recherché: $tableId');
+        debugPrint(
+          'Table null après toutes les tentatives. ID recherché: $tableId',
+        );
         // Redémarrer le scanner pour permettre un nouveau scan
         _controller.start();
         setState(() {
           _isProcessing = false;
           _lastScannedQr = null;
         });
-        throw Exception('Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData');
+        throw Exception(
+          'Table introuvable (ID: $tableId). Vérifiez le QR code scanné: $qrData',
+        );
       }
-      
+
       debugPrint('=== TABLE TROUVÉE ===');
       debugPrint('Numéro: ${table.numero}');
       debugPrint('ID: ${table.id}');
       debugPrint('Type: ${table.type}');
       debugPrint('Statut: ${table.statut}');
-      
+
       debugPrint('Table trouvée: ${table.numero} (ID: ${table.id})');
 
       if (!mounted) return;
@@ -151,19 +164,17 @@ class _QrScanScreenState extends State<QrScanScreen> {
       // Sinon, naviguer vers les détails de la table (le scanner reste arrêté car on change d'écran)
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => TableDetailScreen(table: table!),
-        ),
+        MaterialPageRoute(builder: (_) => TableDetailScreen(table: table!)),
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       // Extraire le message d'erreur de manière plus claire
       String errorMessage = e.toString();
       if (errorMessage.startsWith('Exception: ')) {
         errorMessage = errorMessage.substring(11);
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur: $errorMessage'),
@@ -171,7 +182,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
           duration: const Duration(seconds: 5),
         ),
       );
-      
+
       // Redémarrer le scanner après un délai pour permettre un nouveau scan
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted && !_isProcessing) {
@@ -181,7 +192,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
           });
         }
       });
-      
+
       setState(() {
         _isProcessing = false;
       });
@@ -193,7 +204,10 @@ class _QrScanScreenState extends State<QrScanScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
-        title: const Text('Scanner QR Code', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Scanner QR Code',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -227,10 +241,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _handleBarcode,
-          ),
+          MobileScanner(controller: _controller, onDetect: _handleBarcode),
           if (_isProcessing)
             Container(
               color: Colors.black.withValues(alpha: 0.7),
@@ -296,11 +307,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               ),
               child: const Column(
                 children: [
-                  Icon(
-                    Icons.qr_code_scanner,
-                    color: Colors.orange,
-                    size: 32,
-                  ),
+                  Icon(Icons.qr_code_scanner, color: Colors.orange, size: 32),
                   SizedBox(height: 12),
                   Text(
                     'Scannez le QR code sur la table pour accéder au menu',
@@ -320,4 +327,3 @@ class _QrScanScreenState extends State<QrScanScreen> {
     );
   }
 }
-

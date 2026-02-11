@@ -1,4 +1,4 @@
-package com.example.resto_app
+package com.dolcevita.app
 
 import io.flutter.embedding.android.FlutterActivity
 

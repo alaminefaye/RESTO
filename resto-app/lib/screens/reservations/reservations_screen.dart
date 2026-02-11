@@ -26,7 +26,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
   Future<void> _loadReservations() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -34,7 +34,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     try {
       bool? aVenir;
       String? statut;
-      
+
       if (_filter == 'a_venir') {
         aVenir = true;
       } else if (_filter != 'all') {
@@ -113,7 +113,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const CreateReservationScreen(),
+                                  builder: (context) =>
+                                      const CreateReservationScreen(),
                                 ),
                               );
                               if (result == true) {
@@ -149,84 +150,82 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 ],
               ),
             ),
-            
+
             // Content
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.orange,
-                      ),
+                      child: CircularProgressIndicator(color: Colors.orange),
                     )
                   : _reservations.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(30),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF252525),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      offset: const Offset(8, 8),
-                                      blurRadius: 16,
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.white.withValues(alpha: 0.05),
-                                      offset: const Offset(-6, -6),
-                                      blurRadius: 12,
-                                    ),
-                                  ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(30),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  offset: const Offset(8, 8),
+                                  blurRadius: 16,
                                 ),
-                                child: Icon(
-                                  Icons.event_busy,
-                                  size: 60,
-                                  color: Colors.grey[600],
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  offset: const Offset(-6, -6),
+                                  blurRadius: 12,
                                 ),
-                              ),
-                              const SizedBox(height: 32),
-                              Text(
-                                'Aucune réservation',
-                                style: TextStyle(
-                                  color: Colors.grey[300],
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      offset: const Offset(1, 1),
-                                      blurRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Vos réservations apparaîtront ici',
-                                style: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.event_busy,
+                              size: 60,
+                              color: Colors.grey[600],
+                            ),
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadReservations,
-                          color: Colors.orange,
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(20),
-                            itemCount: _reservations.length,
-                            itemBuilder: (context, index) {
-                              final reservation = _reservations[index];
-                              return _buildReservationCard(context, reservation);
-                            },
+                          const SizedBox(height: 32),
+                          Text(
+                            'Aucune réservation',
+                            style: TextStyle(
+                              color: Colors.grey[300],
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  offset: const Offset(1, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Vos réservations apparaîtront ici',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadReservations,
+                      color: Colors.orange,
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: _reservations.length,
+                        itemBuilder: (context, index) {
+                          final reservation = _reservations[index];
+                          return _buildReservationCard(context, reservation);
+                        },
+                      ),
+                    ),
             ),
           ],
         ),
@@ -234,7 +233,10 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     );
   }
 
-  Widget _build3DIconButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _build3DIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -319,7 +321,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                       color: Colors.black26,
                       offset: Offset(1, 1),
                       blurRadius: 2,
-                    )
+                    ),
                   ]
                 : null,
           ),
@@ -355,9 +357,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ReservationDetailScreen(
-                  reservationId: reservation.id,
-                ),
+                builder: (context) =>
+                    ReservationDetailScreen(reservationId: reservation.id),
               ),
             ).then((_) => _loadReservations());
           },
@@ -429,10 +430,14 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(reservation.statut).withValues(alpha: 0.15),
+                        color: _getStatusColor(
+                          reservation.statut,
+                        ).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: _getStatusColor(reservation.statut).withValues(alpha: 0.3),
+                          color: _getStatusColor(
+                            reservation.statut,
+                          ).withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -449,7 +454,10 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(16),
@@ -461,9 +469,15 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildInfoItem(Icons.calendar_today, Formatters.formatDate(reservation.dateReservation)),
+                      _buildInfoItem(
+                        Icons.calendar_today,
+                        Formatters.formatDate(reservation.dateReservation),
+                      ),
                       _buildVerticalDivider(),
-                      _buildInfoItem(Icons.access_time, '${reservation.heureDebut} - ${reservation.heureFin ?? 'N/A'}'),
+                      _buildInfoItem(
+                        Icons.access_time,
+                        '${reservation.heureDebut} - ${reservation.heureFin ?? 'N/A'}',
+                      ),
                     ],
                   ),
                 ),
@@ -483,7 +497,11 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                           ),
                         ],
                       ),
-                      child: Icon(Icons.people, size: 16, color: Colors.grey[400]),
+                      child: Icon(
+                        Icons.people,
+                        size: 16,
+                        color: Colors.grey[400],
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -502,10 +520,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         fontSize: 22,
                         color: Colors.orange,
                         shadows: [
-                          Shadow(
-                            color: Colors.orangeAccent,
-                            blurRadius: 15,
-                          ),
+                          Shadow(color: Colors.orangeAccent, blurRadius: 15),
                         ],
                       ),
                     ),
@@ -537,11 +552,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   }
 
   Widget _buildVerticalDivider() {
-    return Container(
-      height: 24,
-      width: 1,
-      color: Colors.grey[800],
-    );
+    return Container(height: 24, width: 1, color: Colors.grey[800]);
   }
 
   Color _getStatusColor(ReservationStatus status) {

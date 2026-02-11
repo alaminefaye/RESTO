@@ -44,9 +44,12 @@ class _MenuScreenState extends State<MenuScreen> {
       FavoritesScreen(
         key: ValueKey('favorites_${favorites.count}'),
       ), // Index 1 - Favoris avec clé unique
-      const OrdersScreen(), // Index 2 - Commandes
+      const OrdersScreen(showBackButton: false), // Index 2 - Commandes
       const ReservationsScreen(), // Index 3 - Réservations
-      const CartScreen(tableId: null), // Index 4 - Panier
+      const CartScreen(
+        tableId: null,
+        showBackButton: false,
+      ), // Index 4 - Panier
       const ProfileScreen(), // Index 5 - Profil
     ];
   }

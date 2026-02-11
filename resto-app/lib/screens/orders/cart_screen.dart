@@ -11,8 +11,9 @@ import '../menu/menu_screen.dart';
 
 class CartScreen extends StatelessWidget {
   final int? tableId;
+  final bool showBackButton;
 
-  const CartScreen({super.key, this.tableId});
+  const CartScreen({super.key, this.tableId, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
@@ -47,29 +48,37 @@ class CartScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF252525),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            offset: const Offset(4, 4),
-                            blurRadius: 8,
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            offset: const Offset(-2, -2),
-                            blurRadius: 4,
-                          ),
-                        ],
+                  if (showBackButton)
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              offset: const Offset(4, 4),
+                              blurRadius: 8,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              offset: const Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                        ),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                  ),
+                    )
+                  else
+                    const SizedBox(
+                      width: 40,
+                    ), // Placeholder pour garder l'alignement
                   const Text(
                     'Mon Panier',
                     style: TextStyle(

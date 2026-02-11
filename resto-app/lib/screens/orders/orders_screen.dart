@@ -6,7 +6,9 @@ import '../menu/menu_screen.dart';
 import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key});
+  final bool showBackButton;
+
+  const OrdersScreen({super.key, this.showBackButton = true});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -80,37 +82,45 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const MenuScreen()),
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF252525),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            offset: const Offset(4, 4),
-                            blurRadius: 8,
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            offset: const Offset(-2, -2),
-                            blurRadius: 4,
-                          ),
-                        ],
+                  if (widget.showBackButton)
+                    GestureDetector(
+                      onTap: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const MenuScreen(),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              offset: const Offset(4, 4),
+                              blurRadius: 8,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              offset: const Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                        ),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                  ),
+                    )
+                  else
+                    const SizedBox(width: 40), // Placeholder
                   const Text(
                     'Mes Commandes',
                     style: TextStyle(
@@ -272,10 +282,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(order.statut).withValues(alpha: 0.2),
+                        color: _getStatusColor(
+                          order.statut,
+                        ).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: _getStatusColor(order.statut).withValues(alpha: 0.5),
+                          color: _getStatusColor(
+                            order.statut,
+                          ).withValues(alpha: 0.5),
                           width: 1,
                         ),
                       ),

@@ -37,7 +37,10 @@ dependencies:
   # HTTP & API
   http: ^1.2.0
   dio: ^5.4.0
-  
+
+  # Firebase
+  firebase_core: ^2.24.0
+
   # State Management
   provider: ^6.1.1
   

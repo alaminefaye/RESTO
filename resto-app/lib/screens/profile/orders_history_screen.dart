@@ -257,10 +257,14 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(order.statut).withValues(alpha: 0.2),
+                        color: _getStatusColor(
+                          order.statut,
+                        ).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: _getStatusColor(order.statut).withValues(alpha: 0.5),
+                          color: _getStatusColor(
+                            order.statut,
+                          ).withValues(alpha: 0.5),
                           width: 1,
                         ),
                       ),
