@@ -262,7 +262,7 @@ class ReservationController extends Controller
         // Vérifier que l'utilisateur peut voir cette réservation
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        if ($user->hasRole('client') && $reservation->user_id !== $user->id) {
+        if ($user->hasRole('client') && $reservation->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'êtes pas autorisé à voir cette réservation',
@@ -324,7 +324,7 @@ class ReservationController extends Controller
         // Vérifier que l'utilisateur peut annuler cette réservation
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        if ($user->hasRole('client') && $reservation->user_id !== $user->id) {
+        if ($user->hasRole('client') && $reservation->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'êtes pas autorisé à annuler cette réservation',

@@ -52,6 +52,8 @@ class Reservation extends Model
     ];
 
     protected $casts = [
+        'table_id' => 'integer',
+        'user_id' => 'integer',
         'date_reservation' => 'date',
         'heure_debut' => 'datetime:H:i',
         'heure_fin' => 'datetime:H:i',
