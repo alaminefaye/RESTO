@@ -49,7 +49,7 @@ dependencies:
   
   # QR Code
   qr_flutter: ^4.1.0
-  mobile_scanner: ^5.2.3
+  mobile_scanner: ^7.1.4
   
   # Image Loading
   cached_network_image: ^3.3.1

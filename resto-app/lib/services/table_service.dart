@@ -18,7 +18,7 @@ class TableService {
         }
       }
       return null;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -32,25 +32,18 @@ class TableService {
         // L'API peut retourner directement l'objet ou dans 'data'
         Map<String, dynamic> tableData;
         if (data is Map) {
-          tableData = data.containsKey('data') 
-              ? data['data'] as Map<String, dynamic> 
+          tableData = data.containsKey('data')
+              ? data['data'] as Map<String, dynamic>
               : data as Map<String, dynamic>;
         } else {
           return null;
         }
         return models.Table.fromJson(tableData);
       }
-      print('Erreur lors de la récupération de la table $id: Status ${response.statusCode}');
       return null;
-    } on DioException catch (e) {
-      print('Erreur Dio lors de la récupération de la table $id: ${e.message}');
-      if (e.response != null) {
-        print('Status: ${e.response?.statusCode}');
-        print('Data: ${e.response?.data}');
-      }
+    } on DioException {
       return null;
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération de la table $id: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -58,11 +51,8 @@ class TableService {
   // Récupérer une table via l'endpoint menu (pour le scan QR)
   Future<models.Table?> getTableFromMenuEndpoint(int id) async {
     try {
-      print('Appel API: ${ApiConfig.tables}/$id/menu');
       final response = await _apiService.get('${ApiConfig.tables}/$id/menu');
-      print('Réponse reçue - Status: ${response.statusCode}');
-      print('Réponse data: ${response.data}');
-      
+
       if (response.statusCode == 200) {
         final data = response.data;
         // L'API retourne les données dans 'data.table'
@@ -70,56 +60,42 @@ class TableService {
         if (data is Map) {
           if (data.containsKey('data') && data['data'] is Map) {
             final dataMap = data['data'] as Map<String, dynamic>;
-            print('Data map keys: ${dataMap.keys}');
             if (dataMap.containsKey('table')) {
               tableData = dataMap['table'] as Map<String, dynamic>;
-              print('Table data trouvée dans data.table');
             } else {
               // Fallback: utiliser directement data['data'] si c'est déjà la table
-              print('Pas de clé table, utilisation directe de data');
               tableData = dataMap;
             }
           } else if (data.containsKey('table')) {
             tableData = data['table'] as Map<String, dynamic>;
-            print('Table data trouvée dans data.table (niveau racine)');
           } else if (data.containsKey('success') && data['success'] == true) {
             // Si la réponse est directement la table
             tableData = data as Map<String, dynamic>;
-            print('Utilisation directe de la réponse comme table data');
           }
         }
-        
+
         if (tableData != null) {
-          print('Parsing de la table avec data: $tableData');
           try {
             final table = models.Table.fromJson(tableData);
-            print('Table parsée avec succès: ${table.numero} (ID: ${table.id})');
             return table;
           } catch (e) {
-            print('Erreur lors du parsing de la table: $e');
-            print('Données qui ont causé l\'erreur: $tableData');
             rethrow;
           }
-        } else {
-          print('Aucune donnée de table trouvée dans la réponse');
-        }
+        } else {}
       }
-      print('Erreur lors de la récupération de la table $id via menu: Status ${response.statusCode}');
       return null;
     } on DioException catch (e) {
-      print('Erreur Dio lors de la récupération de la table $id via menu: ${e.message}');
       if (e.response != null) {
-        print('Status: ${e.response?.statusCode}');
-        print('Data: ${e.response?.data}');
         // Lancer une exception avec le message d'erreur de l'API
         final errorData = e.response?.data;
         if (errorData is Map && errorData.containsKey('message')) {
           throw Exception(errorData['message']);
         }
       }
-      throw Exception('Table introuvable (ID: $id). Vérifiez le QR code scanné.');
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération de la table $id via menu: $e');
+      throw Exception(
+        'Table introuvable (ID: $id). Vérifiez le QR code scanné.',
+      );
+    } catch (_) {
       rethrow;
     }
   }
@@ -138,4 +114,3 @@ class TableService {
     }
   }
 }
-

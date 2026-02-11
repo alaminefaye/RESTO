@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/invoice.dart';
-import '../../models/payment.dart';
+import '../../models/order.dart';
 import '../../services/invoice_service.dart';
-import '../../config/api_config.dart';
 import '../../utils/formatters.dart';
 
 class InvoiceScreen extends StatefulWidget {
@@ -61,7 +59,8 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
       debugPrint('Erreur lors du chargement de la facture: $e');
       if (mounted) {
         setState(() {
-          _errorMessage = 'Erreur lors du chargement de la facture: ${e.toString()}';
+          _errorMessage =
+              'Erreur lors du chargement de la facture: ${e.toString()}';
           _isLoading = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -77,90 +76,217 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.purple.shade900,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Reçu',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          if (_invoice?.pdfUrl != null)
-            IconButton(
-              icon: const Icon(Icons.download, color: Colors.white),
-              onPressed: () {
-                // TODO: Implémenter le téléchargement du PDF
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Téléchargement du PDF non implémenté'),
-                    backgroundColor: Colors.orange,
+      backgroundColor: const Color(0xFF1E1E1E),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header 3D
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
                   ),
-                );
-              },
-              tooltip: 'Télécharger le PDF',
-            ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadInvoice,
-            tooltip: 'Actualiser',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(4, 4),
+                            blurRadius: 8,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            offset: const Offset(-2, -2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
+                  const Text(
+                    'Reçu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Row(
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[300]),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _loadInvoice,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Réessayer'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
+                      if (_invoice?.pdfUrl != null)
+                        GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Téléchargement du PDF non implémenté',
+                                ),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 8,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  offset: const Offset(-2, -2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.download,
+                              color: Colors.orange,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: _loadInvoice,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF252525),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                offset: const Offset(4, 4),
+                                blurRadius: 8,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                offset: const Offset(-2, -2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                )
-              : _invoice == null
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.orange),
+                    )
+                  : _errorMessage != null
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.receipt_long_outlined,
+                            Icons.error_outline,
                             size: 64,
-                            color: Colors.grey[600],
+                            color: Colors.red[400],
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Facture non trouvée',
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.grey[300]),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadInvoice,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Réessayer'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _invoice == null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(30),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 8,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  offset: const Offset(-2, -2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.receipt_long_outlined,
+                              size: 60,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Facture non trouvée',
+                            style: TextStyle(
+                              color: Colors.grey[300],
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : _buildInvoiceContent(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -169,66 +295,83 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
     final paiement = _invoice!.paiement;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête de la facture amélioré
+          // En-tête de la facture 3D
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.purple.shade900,
-                  Colors.purple.shade800,
-                ],
-              ),
+              color: const Color(0xFF252525),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(4, 4),
+                  blurRadius: 8,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  offset: const Offset(-2, -2),
+                  blurRadius: 4,
                 ),
               ],
             ),
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: const Color(0xFF1E1E1E),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        offset: const Offset(-2, -2),
+                        blurRadius: 4,
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        offset: const Offset(4, 4),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
                   child: const Icon(
-                    Icons.receipt_long,
-                    color: Colors.white,
+                    Icons.check_circle,
+                    color: Colors.orange,
                     size: 40,
                   ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'RECU',
+                  'PAIEMENT REÇU',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
+                    color: Colors.orange,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 3,
+                    letterSpacing: 2,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     _invoice!.numeroFacture,
                     style: TextStyle(
-                      color: Colors.purple.shade100,
+                      color: Colors.grey[300],
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1,
@@ -239,14 +382,15 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                    Icon(
+                      Icons.calendar_today,
+                      color: Colors.grey[500],
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       Formatters.formatDateTime(_invoice!.createdAt),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[400], fontSize: 14),
                     ),
                   ],
                 ),
@@ -255,30 +399,35 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Informations de la commande améliorées
+          // Informations de la commande
           if (commande != null) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.grey[700]!,
-                  width: 1,
-                ),
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.restaurant, color: Colors.orange, size: 24),
+                      const Icon(
+                        Icons.restaurant,
+                        color: Colors.orange,
+                        size: 24,
                       ),
                       const SizedBox(width: 12),
                       const Text(
@@ -291,7 +440,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildInfoRow(
                     Icons.table_restaurant,
                     'Table',
@@ -299,13 +448,13 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         ? 'Table ${commande.table!.numero}'
                         : 'Table non assignée',
                   ),
-                  const Divider(color: Colors.grey, height: 24),
+                  _buildDivider(),
                   _buildInfoRow(
                     Icons.receipt,
                     'Commande',
                     'Commande #${commande.id}',
                   ),
-                  const Divider(color: Colors.grey, height: 24),
+                  _buildDivider(),
                   _buildInfoRow(
                     Icons.calendar_today,
                     'Date',
@@ -314,32 +463,37 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // Articles commandés améliorés
+            // Articles commandés
             if (commande.produits != null && commande.produits!.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.grey[700]!,
-                    width: 1,
-                  ),
+                  color: const Color(0xFF252525),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      offset: const Offset(4, 4),
+                      blurRadius: 8,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      offset: const Offset(-2, -2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.restaurant_menu, color: Colors.orange, size: 24),
+                        const Icon(
+                          Icons.restaurant_menu,
+                          color: Colors.orange,
+                          size: 24,
                         ),
                         const SizedBox(width: 12),
                         const Text(
@@ -352,40 +506,42 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     ...commande.produits!.map((item) => _buildOrderItem(item)),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
           ],
 
-          // Informations de paiement améliorées
+          // Informations de paiement
           if (paiement != null) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.green.withOpacity(0.3),
-                  width: 1,
-                ),
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.payment, color: Colors.green, size: 24),
-                      ),
+                      const Icon(Icons.payment, color: Colors.green, size: 24),
                       const SizedBox(width: 12),
                       const Text(
                         'Paiement',
@@ -397,36 +553,39 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildInfoRow(
                     Icons.account_balance_wallet,
                     'Moyen de paiement',
-                    _getPaymentMethodName(paiement.moyenPaiement),
+                    paiement.moyenPaiement.displayName,
                   ),
-                  const Divider(color: Colors.grey, height: 24),
+                  _buildDivider(),
                   _buildInfoRow(
                     Icons.money,
                     'Montant payé',
                     Formatters.formatCurrency(paiement.montant),
                   ),
-                  if (paiement.montantRecu != null && paiement.montantRecu! > paiement.montant) ...[
-                    const Divider(color: Colors.grey, height: 24),
+                  if (paiement.montantRecu != null &&
+                      paiement.montantRecu! > paiement.montant) ...[
+                    _buildDivider(),
                     _buildInfoRow(
                       Icons.receipt_long,
                       'Montant reçu',
                       Formatters.formatCurrency(paiement.montantRecu!),
                     ),
                   ],
-                  if (paiement.monnaieRendue != null && paiement.monnaieRendue! > 0) ...[
-                    const Divider(color: Colors.grey, height: 24),
+                  if (paiement.monnaieRendue != null &&
+                      paiement.monnaieRendue! > 0) ...[
+                    _buildDivider(),
                     _buildInfoRow(
                       Icons.change_circle,
                       'Monnaie rendue',
                       Formatters.formatCurrency(paiement.monnaieRendue!),
                     ),
                   ],
-                  if (paiement.transactionId != null && paiement.transactionId!.isNotEmpty) ...[
-                    const Divider(color: Colors.grey, height: 24),
+                  if (paiement.transactionId != null &&
+                      paiement.transactionId!.isNotEmpty) ...[
+                    _buildDivider(),
                     _buildInfoRow(
                       Icons.receipt,
                       'Référence transaction',
@@ -436,31 +595,29 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
 
-          // Totaux améliorés
+          // Totaux
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.purple.withOpacity(0.25),
-                  Colors.purple.shade900.withOpacity(0.3),
-                ],
-              ),
+              color: const Color(0xFF252525),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.purple.withOpacity(0.6),
+                color: Colors.orange.withValues(alpha: 0.5),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(4, 4),
+                  blurRadius: 8,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  offset: const Offset(-2, -2),
+                  blurRadius: 4,
                 ),
               ],
             ),
@@ -472,14 +629,13 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                     children: [
                       Text(
                         'Sous-total',
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.grey[400], fontSize: 16),
                       ),
                       Text(
-                        Formatters.formatCurrency(_invoice!.montantTotal - _invoice!.montantTaxe),
-                        style: TextStyle(
+                        Formatters.formatCurrency(
+                          _invoice!.montantTotal - _invoice!.montantTaxe,
+                        ),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -493,14 +649,11 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                     children: [
                       Text(
                         'Taxe',
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.grey[400], fontSize: 16),
                       ),
                       Text(
                         Formatters.formatCurrency(_invoice!.montantTaxe),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -509,11 +662,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Divider(
-                    color: Colors.white.withOpacity(0.2),
-                    thickness: 1,
-                    height: 1,
-                  ),
+                  Divider(color: Colors.grey[800], thickness: 1, height: 1),
                   const SizedBox(height: 16),
                 ],
                 Row(
@@ -528,19 +677,12 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         letterSpacing: 1,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade300.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        Formatters.formatCurrency(_invoice!.montantTotal),
-                        style: TextStyle(
-                          color: Colors.purple.shade100,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      Formatters.formatCurrency(_invoice!.montantTotal),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -554,180 +696,147 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  offset: const Offset(-1, -1),
+                  blurRadius: 2,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  offset: const Offset(2, 2),
+                  blurRadius: 4,
+                ),
+              ],
             ),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 24),
+                const Icon(Icons.sentiment_satisfied_alt, color: Colors.green),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Text(
-                    'Merci pour votre visite !\nNous espérons vous revoir bientôt.',
+                    'Merci pour votre commande !',
                     style: TextStyle(
-                      color: Colors.green.shade200,
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Divider(color: Colors.grey[800], height: 1),
     );
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: Colors.orange),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                fontSize: 14,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[500]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildOrderItem(orderItem) {
-    // orderItem est un OrderItem (from Order model)
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[700],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey[600]!,
-          width: 1,
-        ),
-      ),
+  Widget _buildOrderItem(OrderItem item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          // Image (si disponible)
-          if (orderItem.image != null && orderItem.image!.isNotEmpty)
-            ClipRRect(
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(10),
-              child: CachedNetworkImage(
-                imageUrl: orderItem.image!.startsWith('http')
-                    ? orderItem.image!
-                    : '${ApiConfig.serverBaseUrl}/storage/${orderItem.image}',
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  width: 60,
-                  height: 60,
-                  color: Colors.grey[600],
-                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  offset: const Offset(-1, -1),
+                  blurRadius: 2,
                 ),
-                errorWidget: (context, url, error) => Container(
-                  width: 60,
-                  height: 60,
-                  color: Colors.grey[600],
-                  child: Icon(Icons.restaurant_menu, size: 24, color: Colors.grey[400]),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  offset: const Offset(2, 2),
+                  blurRadius: 4,
                 ),
-              ),
-            )
-          else
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[600],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.restaurant_menu, size: 24, color: Colors.grey[400]),
+              ],
             ),
+            alignment: Alignment.center,
+            child: Text(
+              '${item.quantite}x',
+              style: const TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  orderItem.produitNom,
+                  item.produitNom,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  '${Formatters.formatCurrency(orderItem.prix)} x ${orderItem.quantite}',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  Formatters.formatCurrency(item.prix),
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
                 ),
               ],
             ),
           ),
-          // Total
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              Formatters.formatCurrency(orderItem.total),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-                fontSize: 16,
-              ),
+          Text(
+            Formatters.formatCurrency(item.total),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _getPaymentMethodName(dynamic moyenPaiement) {
-    if (moyenPaiement is PaymentMethod) {
-      return moyenPaiement.displayName;
-    }
-    // Si c'est une string
-    switch (moyenPaiement.toString()) {
-      case 'especes':
-        return 'Espèces';
-      case 'wave':
-        return 'Wave';
-      case 'orange_money':
-        return 'Orange Money';
-      case 'carte_bancaire':
-        return 'Carte Bancaire';
-      default:
-        return moyenPaiement.toString();
-    }
   }
 }

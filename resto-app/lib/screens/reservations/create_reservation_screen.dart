@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
+import '../../models/reservation.dart';
 import '../../models/table.dart' as models;
 import '../../services/reservation_service.dart';
 import '../../services/table_service.dart';
@@ -9,14 +12,15 @@ class CreateReservationScreen extends StatefulWidget {
   const CreateReservationScreen({super.key});
 
   @override
-  State<CreateReservationScreen> createState() => _CreateReservationScreenState();
+  State<CreateReservationScreen> createState() =>
+      _CreateReservationScreenState();
 }
 
 class _CreateReservationScreenState extends State<CreateReservationScreen> {
   final ReservationService _reservationService = ReservationService();
   final TableService _tableService = TableService();
   final _formKey = GlobalKey<FormState>();
-  
+
   List<models.Table> _tables = [];
   models.Table? _selectedTable;
   DateTime _selectedDate = DateTime.now();
@@ -26,23 +30,39 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   double? _prixTotal;
   bool _isCheckingAvailability = false;
   bool _isCreating = false;
+  bool _isGameRoom = false;
+  List<Reservation> _dailyReservations = [];
 
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _telephoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadTables();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserInfo();
+    });
+  }
+
+  void _loadUserInfo() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUser;
+    if (user != null) {
+      setState(() {
+        _nomController.text = user.name;
+        if (user.phone != null) {
+          _telephoneController.text = user.phone!;
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _nomController.dispose();
     _telephoneController.dispose();
-    _emailController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -61,46 +81,168 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   }
 
   Future<void> _checkAvailability() async {
-    if (_selectedTable == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une table'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isCheckingAvailability = true;
+      _dailyReservations = [];
+      _selectedTable = null;
     });
 
-    final result = await _reservationService.verifierDisponibilite(
-      tableId: _selectedTable!.id,
-      dateReservation: _selectedDate,
-      heureDebut: '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-      duree: _duree,
-    );
+    try {
+      models.Table? bestTable;
+      Map<String, dynamic> successResult = {};
+      bool found = false;
 
-    setState(() {
-      _isCheckingAvailability = false;
-    });
+      if (_isGameRoom) {
+        // Trouver la salle de jeu (unique)
+        try {
+          bestTable = _tables.firstWhere(
+            (t) => t.type == models.TableType.espaceJeux,
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Aucune salle de jeu disponible'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          setState(() {
+            _isCheckingAvailability = false;
+          });
+          return;
+        }
 
-    if (mounted) {
-      if (result['success'] == true && result['disponible'] == true) {
-        setState(() {
-          _prixTotal = result['prix_total'] as double?;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Table disponible ! Prix: ${Formatters.formatCurrency(_prixTotal ?? 0)}'),
-            backgroundColor: Colors.green,
-          ),
+        // Vérifier disponibilité
+        final result = await _reservationService.verifierDisponibilite(
+          tableId: bestTable.id,
+          dateReservation: _selectedDate,
+          heureDebut:
+              '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+          duree: _duree,
         );
+
+        if (result['success'] == true && result['disponible'] == true) {
+          successResult = result;
+          found = true;
+          _selectedTable = bestTable;
+        }
       } else {
+        // Mode Table : Chercher une table appropriée
+        // Filtrer les tables (non-jeu) et capacité suffisante
+        final suitableTables = _tables
+            .where(
+              (t) =>
+                  t.type != models.TableType.espaceJeux &&
+                  t.capacite >= _nombrePersonnes,
+            )
+            .toList();
+
+        // Trier par capacité croissante (pour optimiser l'espace)
+        suitableTables.sort((a, b) => a.capacite.compareTo(b.capacite));
+
+        if (suitableTables.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Aucune table trouvée pour ce nombre de personnes. Essayez de réduire le nombre.',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          setState(() {
+            _isCheckingAvailability = false;
+          });
+          return;
+        }
+
+        // Boucler pour trouver la première table disponible
+        for (final table in suitableTables) {
+          final result = await _reservationService.verifierDisponibilite(
+            tableId: table.id,
+            dateReservation: _selectedDate,
+            heureDebut:
+                '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+            duree: _duree,
+          );
+
+          if (result['success'] == true && result['disponible'] == true) {
+            successResult = result;
+            found = true;
+            _selectedTable = table;
+            break; // On a trouvé une table, on arrête
+          }
+        }
+      }
+
+      setState(() {
+        _isCheckingAvailability = false;
+      });
+
+      if (mounted) {
+        if (found) {
+          setState(() {
+            _prixTotal = successResult['prix_total'] as double?;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Disponible ! Prix: ${Formatters.formatCurrency(_prixTotal ?? 0)}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // Non disponible
+          if (_isGameRoom && bestTable != null) {
+            // Charger le programme pour la salle de jeu
+            final reservations = await _reservationService.getReservations(
+              date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+              tableId: bestTable.id,
+              statut: 'confirmee,en_cours,attente',
+            );
+
+            // Trier les réservations
+            reservations.sort((a, b) => a.heureDebut.compareTo(b.heureDebut));
+
+            setState(() {
+              _dailyReservations = reservations;
+              _selectedTable =
+                  bestTable; // On garde la table pour afficher le programme
+              _prixTotal = null;
+            });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Occupé à cette heure. Voir le programme ci-dessous.',
+                  ),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Aucune table disponible à cette heure.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur checkAvailability: $e');
+      setState(() {
+        _isCheckingAvailability = false;
+      });
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Table non disponible'),
+          const SnackBar(
+            content: Text('Erreur lors de la vérification'),
             backgroundColor: Colors.red,
           ),
         );
@@ -113,21 +255,23 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       return;
     }
 
-    if (_selectedTable == null) {
+    // Le contrôle de _selectedTable est fait via _prixTotal qui est set lors du check
+    if (_prixTotal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez sélectionner une table'),
+          content: Text('Veuillez vérifier la disponibilité d\'abord'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    if (_prixTotal == null) {
+    if (_selectedTable == null) {
+      // Should not happen if _prixTotal is set, but just in case
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez vérifier la disponibilité de la table'),
-          backgroundColor: Colors.orange,
+          content: Text('Erreur interne: Aucune table sélectionnée'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -141,12 +285,14 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       tableId: _selectedTable!.id,
       nomClient: _nomController.text.trim(),
       telephone: _telephoneController.text.trim(),
-      email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       dateReservation: _selectedDate,
-      heureDebut: '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+      heureDebut:
+          '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
       duree: _duree,
       nombrePersonnes: _nombrePersonnes,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
     );
 
     setState(() {
@@ -176,472 +322,896 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.purple.shade900,
-        elevation: 0,
-        title: const Text(
-          'Nouvelle réservation',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Sélection de la table
-              Text(
-                'Table',
-                style: TextStyle(
-                  color: Colors.grey[300],
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<models.Table>(
-                value: _selectedTable,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+      backgroundColor: const Color(0xFF1E1E1E),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header 3D
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
                   ),
-                ),
-                dropdownColor: Colors.grey[800],
-                style: const TextStyle(color: Colors.white),
-                items: _tables.map((table) {
-                  return DropdownMenuItem<models.Table>(
-                    value: table,
-                    child: Text('Table ${table.numero} - ${table.type.displayName} (${table.capacite} pers.)'),
-                  );
-                }).toList(),
-                onChanged: (table) {
-                  setState(() {
-                    _selectedTable = table;
-                    _prixTotal = null;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Veuillez sélectionner une table';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Date et heure
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Date',
-                          style: TextStyle(
-                            color: Colors.grey[300],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: _selectedDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (date != null) {
-                              setState(() {
-                                _selectedDate = date;
-                                _prixTotal = null;
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  DateFormat('dd/MM/yyyy').format(_selectedDate),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                                const Icon(Icons.calendar_today, color: Colors.orange),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Heure',
-                          style: TextStyle(
-                            color: Colors.grey[300],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () async {
-                            final time = await showTimePicker(
-                              context: context,
-                              initialTime: _selectedTime,
-                            );
-                            if (time != null) {
-                              setState(() {
-                                _selectedTime = time;
-                                _prixTotal = null;
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _selectedTime.format(context),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                                const Icon(Icons.access_time, color: Colors.orange),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Durée et nombre de personnes
-              Row(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Durée (heures)',
-                          style: TextStyle(
-                            color: Colors.grey[300],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(4, 4),
+                            blurRadius: 8,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove_circle, color: Colors.orange),
-                              onPressed: _duree > 1
-                                  ? () {
-                                      setState(() {
-                                        _duree--;
-                                        _prixTotal = null;
-                                      });
-                                    }
-                                  : null,
-                            ),
-                            Container(
-                              width: 60,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[700],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$_duree',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add_circle, color: Colors.orange),
-                              onPressed: _duree < 12
-                                  ? () {
-                                      setState(() {
-                                        _duree++;
-                                        _prixTotal = null;
-                                      });
-                                    }
-                                  : null,
-                            ),
-                          ],
-                        ),
-                      ],
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            offset: const Offset(-2, -2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Personnes',
-                          style: TextStyle(
-                            color: Colors.grey[300],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove_circle, color: Colors.orange),
-                              onPressed: _nombrePersonnes > 1
-                                  ? () {
-                                      setState(() {
-                                        _nombrePersonnes--;
-                                      });
-                                    }
-                                  : null,
-                            ),
-                            Container(
-                              width: 60,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[700],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$_nombrePersonnes',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add_circle, color: Colors.orange),
-                              onPressed: () {
-                                setState(() {
-                                  _nombrePersonnes++;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Bouton vérifier disponibilité
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isCheckingAvailability ? null : _checkAvailability,
-                  icon: _isCheckingAvailability
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.check_circle, color: Colors.white),
-                  label: Text(
-                    _isCheckingAvailability ? 'Vérification...' : 'Vérifier disponibilité',
-                    style: const TextStyle(
+                  const Text(
+                    'Nouvelle réservation',
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+                  const SizedBox(width: 40),
+                ],
               ),
-              if (_prixTotal != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Prix total:',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                      // Type de réservation (Table / Salle de jeu)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              offset: const Offset(2, 2),
+                              blurRadius: 4,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              offset: const Offset(-1, -1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_isGameRoom) {
+                                    setState(() {
+                                      _isGameRoom = false;
+                                      _selectedTable = null;
+                                      _prixTotal = null;
+                                      _dailyReservations = [];
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: !_isGameRoom
+                                        ? Colors.orange
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Table',
+                                    style: TextStyle(
+                                      color: !_isGameRoom
+                                          ? Colors.white
+                                          : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!_isGameRoom) {
+                                    setState(() {
+                                      _isGameRoom = true;
+                                      _selectedTable = null;
+                                      _prixTotal = null;
+                                      _dailyReservations = [];
+                                      _nombrePersonnes =
+                                          1; // Reset to 1 for Game Room
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _isGameRoom
+                                        ? Colors.orange
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Salle de jeu',
+                                    style: TextStyle(
+                                      color: _isGameRoom
+                                          ? Colors.white
+                                          : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        Formatters.formatCurrency(_prixTotal!),
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+
+                      const SizedBox(height: 20),
+
+                      // Date et heure
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(15),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF252525),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.4),
+                                    offset: const Offset(4, 4),
+                                    blurRadius: 8,
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    offset: const Offset(-2, -2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Date',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: _selectedDate,
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime.now().add(
+                                          const Duration(days: 365),
+                                        ),
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              colorScheme:
+                                                  const ColorScheme.dark(
+                                                    primary: Colors.orange,
+                                                    onPrimary: Colors.white,
+                                                    surface: Color(0xFF252525),
+                                                    onSurface: Colors.white,
+                                                  ),
+                                            ),
+                                            child: child!,
+                                          );
+                                        },
+                                      );
+                                      if (date != null) {
+                                        setState(() {
+                                          _selectedDate = date;
+                                          _prixTotal = null;
+                                          _dailyReservations = [];
+                                        });
+                                      }
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          DateFormat(
+                                            'dd/MM/yyyy',
+                                          ).format(_selectedDate),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          color: Colors.orange,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(15),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF252525),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.4),
+                                    offset: const Offset(4, 4),
+                                    blurRadius: 8,
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    offset: const Offset(-2, -2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Heure',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () async {
+                                      final time = await showTimePicker(
+                                        context: context,
+                                        initialTime: _selectedTime,
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              colorScheme:
+                                                  const ColorScheme.dark(
+                                                    primary: Colors.orange,
+                                                    onPrimary: Colors.white,
+                                                    surface: Color(0xFF252525),
+                                                    onSurface: Colors.white,
+                                                  ),
+                                            ),
+                                            child: child!,
+                                          );
+                                        },
+                                      );
+                                      if (time != null) {
+                                        setState(() {
+                                          _selectedTime = time;
+                                          _prixTotal = null;
+                                        });
+                                      }
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _selectedTime.format(context),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.access_time,
+                                          color: Colors.orange,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Durée et nombre de personnes
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              offset: const Offset(4, 4),
+                              blurRadius: 8,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              offset: const Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            if (_isGameRoom)
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Durée (heures)',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      _buildCounterButton(
+                                        icon: Icons.remove,
+                                        onPressed: _duree > 1
+                                            ? () {
+                                                setState(() {
+                                                  _duree--;
+                                                  _prixTotal = null;
+                                                });
+                                              }
+                                            : null,
+                                      ),
+                                      SizedBox(
+                                        width: 40,
+                                        child: Text(
+                                          '$_duree',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      _buildCounterButton(
+                                        icon: Icons.add,
+                                        onPressed: _duree < 12
+                                            ? () {
+                                                setState(() {
+                                                  _duree++;
+                                                  _prixTotal = null;
+                                                });
+                                              }
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            if (!_isGameRoom)
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Personnes',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      _buildCounterButton(
+                                        icon: Icons.remove,
+                                        onPressed: _nombrePersonnes > 1
+                                            ? () {
+                                                setState(() {
+                                                  _nombrePersonnes--;
+                                                  _prixTotal = null;
+                                                });
+                                              }
+                                            : null,
+                                      ),
+                                      SizedBox(
+                                        width: 40,
+                                        child: Text(
+                                          '$_nombrePersonnes',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      _buildCounterButton(
+                                        icon: Icons.add,
+                                        onPressed: () {
+                                          setState(() {
+                                            _nombrePersonnes++;
+                                            _prixTotal = null;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Bouton vérifier disponibilité
+                      GestureDetector(
+                        onTap: _isCheckingAvailability
+                            ? null
+                            : _checkAvailability,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.orange, Colors.deepOrange],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withValues(alpha: 0.4),
+                                offset: const Offset(4, 4),
+                                blurRadius: 8,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                offset: const Offset(-2, -2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isCheckingAvailability)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isCheckingAvailability
+                                    ? 'Vérification...'
+                                    : 'Vérifier disponibilité',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      if (_prixTotal != null) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: Colors.green.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Prix total:',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                Formatters.formatCurrency(_prixTotal!),
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+
+                      // Affichage du programme si salle de jeu occupée
+                      if (_isGameRoom && _dailyReservations.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF252525),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                offset: const Offset(4, 4),
+                                blurRadius: 8,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                offset: const Offset(-2, -2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.event_note, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Programme du jour',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _dailyReservations.length,
+                                separatorBuilder: (context, index) =>
+                                    const Divider(color: Colors.grey),
+                                itemBuilder: (context, index) {
+                                  final res = _dailyReservations[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '${res.heureDebut} - ${res.heureFin ?? '...'}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Occupé',
+                                            style: TextStyle(
+                                              color: Colors.orange,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Informations client
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              offset: const Offset(4, 4),
+                              blurRadius: 8,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              offset: const Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Informations client',
+                              style: TextStyle(
+                                color: Colors.grey[300],
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              _nomController,
+                              'Nom complet *',
+                              Icons.person,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              _telephoneController,
+                              'Téléphone *',
+                              Icons.phone,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              _notesController,
+                              'Notes (optionnel)',
+                              Icons.note,
+                              maxLines: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Bouton créer réservation
+                      GestureDetector(
+                        onTap: _isCreating || _prixTotal == null
+                            ? null
+                            : _createReservation,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: _isCreating || _prixTotal == null
+                                ? LinearGradient(
+                                    colors: [
+                                      Colors.grey.shade700,
+                                      Colors.grey.shade800,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : const LinearGradient(
+                                    colors: [Colors.orange, Colors.deepOrange],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: _isCreating || _prixTotal == null
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.orange.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      offset: const Offset(4, 4),
+                                      blurRadius: 8,
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      offset: const Offset(-2, -2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isCreating)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(Icons.event, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isCreating
+                                    ? 'Création...'
+                                    : 'Créer la réservation',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
-              ],
-              const SizedBox(height: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              // Informations client
-              Text(
-                'Informations client',
-                style: TextStyle(
-                  color: Colors.grey[300],
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+  Widget _buildCounterButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    final isEnabled = onPressed != null;
+    return Container(
+      decoration: BoxDecoration(
+        color: isEnabled ? Colors.orange : const Color(0xFF252525),
+        shape: BoxShape.circle,
+        boxShadow: isEnabled
+            ? [
+                BoxShadow(
+                  color: Colors.orange.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(4, 4),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nomController,
-                decoration: InputDecoration(
-                  labelText: 'Nom complet *',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
                 ),
-                style: const TextStyle(color: Colors.white),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Veuillez entrer le nom';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _telephoneController,
-                decoration: InputDecoration(
-                  labelText: 'Téléphone *',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Veuillez entrer le téléphone';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email (optionnel)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notesController,
-                decoration: InputDecoration(
-                  labelText: 'Notes (optionnel)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 32),
+              ]
+            : null,
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 20),
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      ),
+    );
+  }
 
-              // Bouton créer réservation
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isCreating || _prixTotal == null ? null : _createReservation,
-                  icon: _isCreating
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.event, color: Colors.white),
-                  label: Text(
-                    _isCreating ? 'Création...' : 'Créer la réservation',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.05),
+            offset: const Offset(-1, -1),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.grey),
+          prefixIcon: Icon(icon, color: Colors.orange),
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.orange, width: 1),
           ),
         ),
+        style: const TextStyle(color: Colors.white),
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        validator: (value) {
+          if (label.contains('*') && (value == null || value.trim().isEmpty)) {
+            return 'Ce champ est requis';
+          }
+          return null;
+        },
       ),
     );
   }

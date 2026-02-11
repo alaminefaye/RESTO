@@ -191,14 +191,37 @@ class _QrScanScreenState extends State<QrScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
-        title: const Text('Scanner QR Code'),
+        title: const Text('Scanner QR Code', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1A1A1A),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.flash_on),
-            onPressed: () {
-              _controller.toggleTorch();
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF252525),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(2, 2),
+                  blurRadius: 4,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  offset: const Offset(-1, -1),
+                  blurRadius: 2,
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.flash_on, color: Colors.orange),
+              onPressed: () {
+                _controller.toggleTorch();
+              },
+            ),
           ),
         ],
       ),
@@ -210,46 +233,85 @@ class _QrScanScreenState extends State<QrScanScreen> {
           ),
           if (_isProcessing)
             Container(
-              color: Colors.black.withOpacity(0.7),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text(
-                      'Traitement...',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ],
+              color: Colors.black.withValues(alpha: 0.7),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF252525),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        offset: const Offset(4, 4),
+                        blurRadius: 8,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        offset: const Offset(-2, -2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Colors.orange),
+                      SizedBox(height: 24),
+                      Text(
+                        'Traitement...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           // Instructions
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: 32,
+            left: 20,
+            right: 20,
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.8),
-                  ],
+                color: const Color(0xFF252525).withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 1,
                 ),
               ),
-              child: const Text(
-                'Scannez le QR code sur la table pour accéder au menu',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.qr_code_scanner,
+                    color: Colors.orange,
+                    size: 32,
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'Scannez le QR code sur la table pour accéder au menu',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

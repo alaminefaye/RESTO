@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -70,6 +71,7 @@ class AuthController extends Controller
             $user = User::create([
                 'name' => trim($validated['nom'] . ' ' . $validated['prenom']),
                 'email' => $userEmail,
+                'phone' => $validated['telephone'],
                 'password' => Hash::make($validated['password']),
             ]);
 
@@ -126,6 +128,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'phone' => $user->phone,
                     'roles' => $user->roles->pluck('name'),
                     'permissions' => $permissions,
                 ],
@@ -150,7 +153,7 @@ class AuthController extends Controller
             DB::rollBack();
             
             // Logger l'erreur pour le débogage
-            \Log::error('Erreur lors de l\'inscription: ' . $e->getMessage(), [
+            Log::error('Erreur lors de l\'inscription: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all(),
             ]);
@@ -231,6 +234,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'phone' => $user->phone,
                 'roles' => $user->roles->pluck('name'),
                 'permissions' => $permissions,
             ],
@@ -287,6 +291,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'phone' => $user->phone,
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at,
                 'roles' => $user->roles->map(function ($role) {

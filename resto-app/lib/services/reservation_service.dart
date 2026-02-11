@@ -11,14 +11,16 @@ class ReservationService {
     String? statut,
     String? date,
     bool? aVenir,
+    int? tableId,
   }) async {
     try {
       String url = ApiConfig.reservations;
       Map<String, dynamic> queryParams = {};
-      
+
       if (statut != null) queryParams['statut'] = statut;
       if (date != null) queryParams['date'] = date;
       if (aVenir != null) queryParams['a_venir'] = aVenir;
+      if (tableId != null) queryParams['table_id'] = tableId;
 
       if (queryParams.isNotEmpty) {
         url += '?${Uri(queryParameters: queryParams).query}';
@@ -43,22 +45,14 @@ class ReservationService {
               final reservation = Reservation.fromJson(json);
               reservations.add(reservation);
             }
-          } catch (e) {
-            print('Erreur parsing réservation: $e');
-            print('JSON: $json');
-          }
+          } catch (_) {}
         }
         return reservations;
       }
       return [];
-    } on DioException catch (e) {
-      print('Erreur lors de la récupération des réservations: ${e.message}');
-      if (e.response != null) {
-        print('Response data: ${e.response?.data}');
-      }
+    } on DioException {
       return [];
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération des réservations: $e');
+    } catch (_) {
       return [];
     }
   }
@@ -86,7 +80,9 @@ class ReservationService {
         return {
           'success': data['success'] ?? true,
           'disponible': data['disponible'] ?? false,
-          'prix_total': data['prix_total'] != null ? (data['prix_total'] as num).toDouble() : null,
+          'prix_total': data['prix_total'] != null
+              ? (data['prix_total'] as num).toDouble()
+              : null,
           'message': data['message'] ?? '',
         };
       }
@@ -103,11 +99,7 @@ class ReservationService {
           message = data['message'] as String;
         }
       }
-      return {
-        'success': false,
-        'disponible': false,
-        'message': message,
-      };
+      return {'success': false, 'disponible': false, 'message': message};
     } catch (e) {
       return {
         'success': false,
@@ -122,7 +114,6 @@ class ReservationService {
     required int tableId,
     required String nomClient,
     required String telephone,
-    String? email,
     required DateTime dateReservation,
     required String heureDebut,
     required int duree,
@@ -137,7 +128,6 @@ class ReservationService {
           'table_id': tableId,
           'nom_client': nomClient,
           'telephone': telephone,
-          if (email != null && email.isNotEmpty) 'email': email,
           'date_reservation': dateReservation.toIso8601String().split('T')[0],
           'heure_debut': heureDebut,
           'duree': duree,
@@ -151,14 +141,11 @@ class ReservationService {
         final data = response.data;
         Map<String, dynamic> reservationData;
         if (data is Map) {
-          reservationData = data.containsKey('data') 
-              ? data['data'] as Map<String, dynamic> 
+          reservationData = data.containsKey('data')
+              ? data['data'] as Map<String, dynamic>
               : data as Map<String, dynamic>;
         } else {
-          return {
-            'success': false,
-            'message': 'Format de réponse invalide',
-          };
+          return {'success': false, 'message': 'Format de réponse invalide'};
         }
         return {
           'success': true,
@@ -188,15 +175,14 @@ class ReservationService {
           message = data['message'] ?? 'La table n\'est pas disponible';
         }
       } else if (e.type == DioExceptionType.connectionTimeout ||
-                 e.type == DioExceptionType.receiveTimeout) {
-        message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+          e.type == DioExceptionType.receiveTimeout) {
+        message =
+            'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
       } else if (e.type == DioExceptionType.connectionError) {
-        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+        message =
+            'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
       }
-      return {
-        'success': false,
-        'message': message,
-      };
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,
@@ -213,7 +199,9 @@ class ReservationService {
         final data = response.data;
         Map<String, dynamic> reservationData;
         if (data is Map) {
-          if (data.containsKey('success') && data['success'] == true && data.containsKey('data')) {
+          if (data.containsKey('success') &&
+              data['success'] == true &&
+              data.containsKey('data')) {
             reservationData = data['data'] as Map<String, dynamic>;
           } else if (data.containsKey('data')) {
             reservationData = data['data'] as Map<String, dynamic>;
@@ -226,11 +214,9 @@ class ReservationService {
         return Reservation.fromJson(reservationData);
       }
       return null;
-    } on DioException catch (e) {
-      print('Erreur lors de la récupération de la réservation: ${e.message}');
+    } on DioException {
       return null;
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération de la réservation: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -261,10 +247,7 @@ class ReservationService {
           message = data['message'] as String;
         }
       }
-      return {
-        'success': false,
-        'message': message,
-      };
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,
@@ -276,9 +259,7 @@ class ReservationService {
   // Annuler une réservation
   Future<Map<String, dynamic>> annulerReservation(int id) async {
     try {
-      final response = await _apiService.patch(
-        ApiConfig.cancelReservation(id),
-      );
+      final response = await _apiService.patch(ApiConfig.cancelReservation(id));
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -299,10 +280,7 @@ class ReservationService {
           message = data['message'] as String;
         }
       }
-      return {
-        'success': false,
-        'message': message,
-      };
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,

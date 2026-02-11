@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../tables/qr_scan_screen.dart';
 import '../orders/cart_screen.dart';
 import '../orders/orders_screen.dart';
 import '../profile/profile_screen.dart';
 import '../home/home_screen.dart';
 import '../favorites/favorites_screen.dart';
-import '../auth/login_screen.dart';
+import '../reservations/reservations_screen.dart';
 import '../../models/cart.dart';
 import '../../models/favorites.dart';
-import '../../services/auth_service.dart';
 
 class MenuScreen extends StatefulWidget {
   final int? initialIndex;
-  
+
   const MenuScreen({super.key, this.initialIndex});
 
   @override
@@ -23,6 +21,11 @@ class MenuScreen extends StatefulWidget {
 // Widget pour naviguer directement vers les commandes
 class MenuScreenWithOrders extends MenuScreen {
   const MenuScreenWithOrders({super.key}) : super(initialIndex: 2);
+}
+
+// Widget pour naviguer directement vers les réservations
+class MenuScreenWithReservations extends MenuScreen {
+  const MenuScreenWithReservations({super.key}) : super(initialIndex: 3);
 }
 
 class _MenuScreenState extends State<MenuScreen> {
@@ -38,10 +41,13 @@ class _MenuScreenState extends State<MenuScreen> {
     final favorites = Provider.of<Favorites>(context, listen: false);
     return [
       const HomeScreen(), // Index 0 - Accueil
-      FavoritesScreen(key: ValueKey('favorites_${favorites.count}')), // Index 1 - Favoris avec clé unique
+      FavoritesScreen(
+        key: ValueKey('favorites_${favorites.count}'),
+      ), // Index 1 - Favoris avec clé unique
       const OrdersScreen(), // Index 2 - Commandes
-      const CartScreen(tableId: null), // Index 3 - Panier
-      const ProfileScreen(), // Index 4 - Profil
+      const ReservationsScreen(), // Index 3 - Réservations
+      const CartScreen(tableId: null), // Index 4 - Panier
+      const ProfileScreen(), // Index 5 - Profil
     ];
   }
 
@@ -50,196 +56,65 @@ class _MenuScreenState extends State<MenuScreen> {
     return Consumer<Favorites>(
       builder: (context, favorites, _) {
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.grey[900],
-            elevation: 0,
-            title: Text(
-              _currentIndex == 1
-                  ? 'Favoris'
-                  : _currentIndex == 2
-                      ? 'Mes Commandes'
-                      : _currentIndex == 3
-                          ? 'Panier'
-                          : _currentIndex == 4
-                              ? 'Mon Profil'
-                              : 'Resto App',
-              style: const TextStyle(color: Colors.white),
-            ),
-            actions: _currentIndex == 1 || _currentIndex == 2
-                ? [] // Pas d'actions pour la page favoris et commandes
-                : _currentIndex == 4
-                    ? [
-                        // Bouton de déconnexion pour la page profil
-                        TextButton.icon(
-                  icon: const Icon(Icons.logout, color: Colors.red, size: 20),
-                  label: const Text(
-                    'Déconnexion',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  onPressed: () async {
-                    final authService = Provider.of<AuthService>(context, listen: false);
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: Colors.grey[800],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        title: const Text(
-                          'Déconnexion',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        content: const Text(
-                          'Êtes-vous sûr de vouloir vous déconnecter ?',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text(
-                              'Annuler',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text(
-                              'Déconnexion',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm == true && context.mounted) {
-                      await authService.logout();
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      }
-                    }
-                  },
-                        ),
-                      ]
-                    : _currentIndex == 3
-                        ? [
-                            // Bouton vider le panier
-                            Consumer<Cart>(
-                      builder: (context, cart, _) {
-                        if (cart.isNotEmpty) {
-                          return IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  backgroundColor: Colors.grey[800],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  title: const Text(
-                                    'Vider le panier',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  content: const Text(
-                                    'Êtes-vous sûr de vouloir vider votre panier ?',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text(
-                                        'Annuler',
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        cart.clear();
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text(
-                                        'Vider',
-                                        style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                    ],
-                                ),
-                              );
-                            },
-                            tooltip: 'Vider le panier',
-                  );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-                          ]
-                        : [
-          IconButton(
-                              icon: const Icon(Icons.qr_code_scanner, color: Colors.orange),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QrScanScreen()),
-              );
-            },
-            tooltip: 'Scanner QR Code',
-          ),
-                          ],
-          ),
+          backgroundColor: const Color(0xFF1E1E1E),
           body: IndexedStack(
             index: _currentIndex,
             children: _buildScreens(context),
           ),
           bottomNavigationBar: Container(
+            margin: const EdgeInsets.all(20),
+            height: 70,
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: const Color(0xFF252525),
+              borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 10,
-                  offset: const Offset(0, -5),
+                  offset: const Offset(5, 5),
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  blurRadius: 5,
+                  offset: const Offset(-2, -2),
                 ),
               ],
             ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      // Chariot (Panier)
-                      _buildNavItem(Icons.shopping_cart, _currentIndex == 3, () {
-                        setState(() => _currentIndex = 3);
-                      }, isCart: true),
-                      // Accueil
-                      _buildNavItem(Icons.home, _currentIndex == 0, () {
-                        setState(() => _currentIndex = 0);
-                      }, isHome: true),
-                      // Commandes
-                      _buildNavItem(Icons.receipt_long, _currentIndex == 2, () {
-                        setState(() => _currentIndex = 2);
-                      }),
-                      // Favoris
-                      _buildNavItem(Icons.favorite, _currentIndex == 1, () {
-                        setState(() => _currentIndex = 1);
-                      }),
-                      // Profil
-                      _buildNavItem(Icons.person, _currentIndex == 4, () {
-                        setState(() => _currentIndex = 4);
-                      }),
-                    ],
-                  ),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.home_rounded, _currentIndex == 0, () {
+                  setState(() => _currentIndex = 0);
+                }, isHome: true),
+                _buildNavItem(Icons.favorite_rounded, _currentIndex == 1, () {
+                  setState(() => _currentIndex = 1);
+                }),
+                _buildNavItem(
+                  Icons.receipt_long_rounded,
+                  _currentIndex == 2,
+                  () {
+                    setState(() => _currentIndex = 2);
+                  },
+                ),
+                _buildNavItem(
+                  Icons.calendar_month_rounded,
+                  _currentIndex == 3,
+                  () {
+                    setState(() => _currentIndex = 3);
+                  },
+                ),
+                _buildNavItem(
+                  Icons.shopping_cart_rounded,
+                  _currentIndex == 4,
+                  () {
+                    setState(() => _currentIndex = 4);
+                  },
+                  isCart: true,
+                ),
+                _buildNavItem(Icons.person_rounded, _currentIndex == 5, () {
+                  setState(() => _currentIndex = 5);
+                }),
+              ],
             ),
           ),
         );
@@ -257,25 +132,36 @@ class _MenuScreenState extends State<MenuScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Stack(
+        alignment: Alignment.center,
         children: [
-          Container(
-            padding: EdgeInsets.all(isHome ? 16 : 12),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.orange.withOpacity(0.2) : Colors.transparent,
-              borderRadius: BorderRadius.circular(isHome ? 16 : 12),
+              color: isSelected ? Colors.orange : Colors.transparent,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
             child: Icon(
               icon,
-              color: isSelected ? Colors.orange : Colors.grey[400],
-              size: isHome ? 28 : 24,
-              ),
+              color: isSelected ? Colors.white : Colors.grey[600],
+              size: 24,
             ),
+          ),
           if (isCart)
             Consumer<Cart>(
               builder: (context, cart, _) {
                 if (cart.itemCount > 0) {
                   return Positioned(
-                    right: isHome ? 12 : 8,
+                    right: 8,
                     top: 8,
                     child: Container(
                       padding: const EdgeInsets.all(4),
@@ -284,17 +170,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${cart.itemCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
+                        minWidth: 10,
+                        minHeight: 10,
                       ),
                     ),
                   );
@@ -307,4 +184,3 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 }
-

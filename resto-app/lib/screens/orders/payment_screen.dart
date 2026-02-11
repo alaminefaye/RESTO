@@ -221,207 +221,294 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.grey[900],
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Paiement - Commande #${widget.order.id}',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xFF1E1E1E),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Montant à payer
+            // Header 3D
             Container(
-              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Montant à payer:',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(4, 4),
+                            blurRadius: 8,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            offset: const Offset(-2, -2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
-                  Text(
-                    Formatters.formatCurrency(widget.order.montantTotal),
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Paiement - Commande #${widget.order.id}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 40), // Pour équilibrer l'espace
                 ],
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Sélection du mode de paiement
-            const Text(
-              'Mode de paiement',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Options de paiement
-            _buildPaymentMethodOption(
-              PaymentMethod.wave,
-              'Wave',
-              'Paiement mobile via Wave',
-              Icons.phone_android,
-            ),
-            _buildPaymentMethodOption(
-              PaymentMethod.orangeMoney,
-              'Orange Money',
-              'Paiement mobile via Orange Money',
-              Icons.phone_android,
-            ),
-            if (!_isClient)
-              _buildPaymentMethodOption(
-                PaymentMethod.especes,
-                'Espèces',
-                'Paiement en espèces (gérant uniquement)',
-                Icons.money,
-              ),
-
-            const SizedBox(height: 24),
-
-            // Champs conditionnels selon le mode de paiement
-            if (_selectedPaymentMethod == PaymentMethod.wave || _selectedPaymentMethod == PaymentMethod.orangeMoney) ...[
-              TextField(
-                controller: _transactionIdController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Numéro de transaction',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  hintText: 'Entrez le numéro de transaction',
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.receipt, color: Colors.orange),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            if (_selectedPaymentMethod == PaymentMethod.especes && !_isClient) ...[
-              TextField(
-                controller: _amountReceivedController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Montant reçu',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  hintText: 'Montant reçu du client',
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.money, color: Colors.orange),
-                  suffixText: 'FCFA',
-                  suffixStyle: TextStyle(color: Colors.grey[400]),
-                ),
-                onChanged: (value) {
-                  setState(() {});
-                },
-              ),
-              const SizedBox(height: 12),
-              if (_amountReceivedController.text.isNotEmpty)
-                Builder(
-                  builder: (context) {
-                    final montantRecu = double.tryParse(_amountReceivedController.text) ?? 0.0;
-                    final difference = montantRecu - widget.order.montantTotal;
-                    return Container(
-                      padding: const EdgeInsets.all(12),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Montant à payer 3D
+                    Container(
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: difference >= 0 ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFF252525),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(4, 4),
+                            blurRadius: 8,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            offset: const Offset(-2, -2),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            difference >= 0 ? Icons.check_circle : Icons.error,
-                            color: difference >= 0 ? Colors.green : Colors.red,
+                          const Text(
+                            'Montant à payer:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              difference >= 0
-                                  ? 'Monnaie à rendre: ${Formatters.formatCurrency(difference)}'
-                                  : 'Montant insuffisant: ${Formatters.formatCurrency(-difference)}',
-                              style: TextStyle(
-                                color: difference >= 0 ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Text(
+                            Formatters.formatCurrency(widget.order.montantTotal),
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-            ],
+                    ),
+                    const SizedBox(height: 30),
 
-            const SizedBox(height: 32),
-
-            // Bouton de paiement
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isProcessing || _selectedPaymentMethod == null
-                    ? null
-                    : _initiatePayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  disabledBackgroundColor: Colors.grey[700],
-                ),
-                child: _isProcessing
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Procéder au paiement',
+                    // Sélection du mode de paiement
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 16),
+                      child: Text(
+                        'Mode de paiement',
                         style: TextStyle(
+                          color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+
+                    // Options de paiement
+                    _buildPaymentMethodOption(
+                      PaymentMethod.wave,
+                      'Wave',
+                      'Paiement mobile via Wave',
+                      Icons.phone_android,
+                    ),
+                    _buildPaymentMethodOption(
+                      PaymentMethod.orangeMoney,
+                      'Orange Money',
+                      'Paiement mobile via Orange Money',
+                      Icons.phone_android,
+                    ),
+                    if (!_isClient)
+                      _buildPaymentMethodOption(
+                        PaymentMethod.especes,
+                        'Espèces',
+                        'Paiement en espèces (gérant uniquement)',
+                        Icons.money,
+                      ),
+
+                    const SizedBox(height: 30),
+
+                    // Champs conditionnels selon le mode de paiement
+                    if (_selectedPaymentMethod == PaymentMethod.wave || _selectedPaymentMethod == PaymentMethod.orangeMoney) ...[
+                      _build3DTextField(
+                        controller: _transactionIdController,
+                        label: 'Numéro de transaction',
+                        hint: 'Entrez le numéro de transaction',
+                        icon: Icons.receipt,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    if (_selectedPaymentMethod == PaymentMethod.especes && !_isClient) ...[
+                      _build3DTextField(
+                        controller: _amountReceivedController,
+                        label: 'Montant reçu',
+                        hint: 'Montant reçu du client',
+                        icon: Icons.money,
+                        keyboardType: TextInputType.number,
+                        suffixText: 'FCFA',
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      if (_amountReceivedController.text.isNotEmpty)
+                        Builder(
+                          builder: (context) {
+                            final montantRecu = double.tryParse(_amountReceivedController.text) ?? 0.0;
+                            final difference = montantRecu - widget.order.montantTotal;
+                            final isEnough = difference >= 0;
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF252525),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: isEnough ? Colors.green : Colors.red,
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.4),
+                                    offset: const Offset(4, 4),
+                                    blurRadius: 8,
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    offset: const Offset(-2, -2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isEnough ? Icons.check_circle : Icons.error,
+                                    color: isEnough ? Colors.green : Colors.red,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      isEnough
+                                          ? 'Monnaie à rendre: ${Formatters.formatCurrency(difference)}'
+                                          : 'Montant insuffisant: ${Formatters.formatCurrency(-difference)}',
+                                      style: TextStyle(
+                                        color: isEnough ? Colors.green : Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+
+                    const SizedBox(height: 40),
+
+                    // Bouton de paiement 3D
+                    GestureDetector(
+                      onTap: _isProcessing || _selectedPaymentMethod == null
+                          ? null
+                          : _initiatePayment,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: _isProcessing || _selectedPaymentMethod == null
+                                ? [Colors.grey[700]!, Colors.grey[800]!]
+                                : [Colors.orange, Colors.deepOrange],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            if (!(_isProcessing || _selectedPaymentMethod == null)) ...[
+                              BoxShadow(
+                                color: Colors.orange.withValues(alpha: 0.4),
+                                offset: const Offset(4, 4),
+                                blurRadius: 10,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                offset: const Offset(-2, -2),
+                                blurRadius: 5,
+                              ),
+                            ]
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: _isProcessing
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text(
+                                'Procéder au paiement',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
           ],
@@ -440,88 +527,167 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final isDisabled = _isClient && method == PaymentMethod.especes;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: isDisabled ? null : () {
-          setState(() {
-            _selectedPaymentMethod = method;
-            if (method != PaymentMethod.especes) {
-              _amountReceivedController.clear();
-            } else {
-              _amountReceivedController.text = widget.order.montantTotal.toStringAsFixed(0);
-            }
-            if (method == PaymentMethod.especes) {
-              _transactionIdController.clear();
-            }
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDisabled 
-                ? (isSelected ? Colors.orange.withOpacity(0.1) : Colors.grey[800]!.withOpacity(0.5))
-                : (isSelected ? Colors.orange.withOpacity(0.2) : Colors.grey[800]!),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? Colors.orange : Colors.transparent,
-              width: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(20),
+        border: isSelected 
+            ? Border.all(color: Colors.orange, width: 2)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            offset: const Offset(4, 4),
+            blurRadius: 8,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.05),
+            offset: const Offset(-2, -2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isDisabled ? null : () {
+            setState(() {
+              _selectedPaymentMethod = method;
+              if (method != PaymentMethod.especes) {
+                _amountReceivedController.clear();
+              } else {
+                _amountReceivedController.text = widget.order.montantTotal.toStringAsFixed(0);
+              }
+              if (method == PaymentMethod.especes) {
+                _transactionIdController.clear();
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.orange.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        offset: const Offset(-1, -1),
+                        blurRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        offset: const Offset(2, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? Colors.orange : Colors.grey[500],
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: isDisabled 
+                              ? Colors.grey[600]
+                              : (isSelected ? Colors.white : Colors.grey[300]),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withValues(alpha: 0.4),
+                          offset: const Offset(2, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.orange.withOpacity(0.2) : Colors.grey[700],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? Colors.orange : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[300],
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: const BoxDecoration(
-                    color: Colors.orange,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-            ],
+        ),
+      ),
+    );
+  }
+
+  Widget _build3DTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? suffixText,
+    void Function(String)? onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.05),
+            offset: const Offset(-1, -1),
+            blurRadius: 2,
           ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        onChanged: onChanged,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[400]),
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[600]),
+          prefixIcon: Icon(icon, color: Colors.orange),
+          suffixText: suffixText,
+          suffixStyle: TextStyle(color: Colors.grey[400]),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );

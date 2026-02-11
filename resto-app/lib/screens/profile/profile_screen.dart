@@ -35,13 +35,52 @@ class ProfileScreen extends StatelessWidget {
           }
 
           return Scaffold(
-            backgroundColor: Colors.grey[900],
+            backgroundColor: const Color(0xFF1E1E1E),
             body: SafeArea(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
-                  
+                    // Header 3D
+                    Container(
+                      margin: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 15,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            offset: const Offset(4, 4),
+                            blurRadius: 8,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.05),
+                            offset: const Offset(-2, -2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.person, color: Colors.orange, size: 28),
+                          SizedBox(width: 10),
+                          Text(
+                            'Mon Profil',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     // Photo de profil et informations
                     Column(
                       children: [
@@ -71,8 +110,8 @@ class ProfileScreen extends StatelessWidget {
                                   user.name.isNotEmpty
                                       ? user.name[0].toUpperCase()
                                       : user.email.isNotEmpty
-                                          ? user.email[0].toUpperCase()
-                                          : 'U',
+                                      ? user.email[0].toUpperCase()
+                                      : 'U',
                                   style: const TextStyle(
                                     fontSize: 36,
                                     fontWeight: FontWeight.bold,
@@ -82,8 +121,11 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             ),
                             // Badge Admin si rôle admin
-                            if (user.roles.isNotEmpty && 
-                                user.roles.any((role) => role.toLowerCase().contains('admin')))
+                            if (user.roles.isNotEmpty &&
+                                user.roles.any(
+                                  (role) =>
+                                      role.toLowerCase().contains('admin'),
+                                ))
                               Positioned(
                                 bottom: -2,
                                 child: Container(
@@ -121,7 +163,7 @@ class ProfileScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Nom
                         Text(
                           user.name.isNotEmpty ? user.name : 'Utilisateur',
@@ -131,45 +173,63 @@ class ProfileScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        
-                        // Email
-                        Text(
-                          user.email,
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
+                        const SizedBox(height: 30),
+
                         // Bouton Edit Profile
-                        OutlinedButton.icon(
-                          onPressed: () {
+                        GestureDetector(
+                          onTap: () {
                             // TODO: Éditer le profil
                           },
-                          icon: const Icon(Icons.edit, size: 16),
-                          label: const Text(
-                            'Éditer le profil',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: BorderSide(color: Colors.grey[700]!),
+                          child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
+                              horizontal: 24,
+                              vertical: 12,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.orange.shade400,
+                                  Colors.deepOrange,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.3),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 10,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.1),
+                                  offset: const Offset(-2, -2),
+                                  blurRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.edit, size: 16, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Éditer le profil',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                    
-                    const SizedBox(height: 30),
-                  
+
+                    const SizedBox(height: 40),
+
                     // Section Informations
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -177,45 +237,34 @@ class ProfileScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Informations',
+                            'INFORMATIONS',
                             style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                              color: Colors.grey[500],
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildInfoRow(
-                                  icon: Icons.email_outlined,
-                                  title: 'Email',
-                                  value: user.email,
-                                  showDivider: true,
-                                ),
-                                if (user.phone != null) ...[
-                                  _buildInfoRow(
-                                    icon: Icons.phone_outlined,
-                                    title: 'Téléphone',
-                                    value: user.phone!,
-                                    showDivider: false,
-                                  ),
-                                ],
-                              ],
-                            ),
+                          const SizedBox(height: 15),
+                          _buildInfoCard(
+                            icon: Icons.email_outlined,
+                            title: 'Email',
+                            value: user.email,
                           ),
+                          if (user.phone != null) ...[
+                            const SizedBox(height: 15),
+                            _buildInfoCard(
+                              icon: Icons.phone_outlined,
+                              title: 'Téléphone',
+                              value: user.phone!,
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 24),
-                  
+
+                    const SizedBox(height: 30),
+
                     // Section Actions
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -223,56 +272,57 @@ class ProfileScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Actions',
+                            'ACTIONS',
                             style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                              color: Colors.grey[500],
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildActionRow(
-                                  icon: Icons.receipt_long,
-                                  title: 'Historique des commandes',
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const OrdersHistoryScreen(),
-                                      ),
-                                    );
-                                  },
-                                  showDivider: true,
+                          const SizedBox(height: 15),
+                          _buildActionCard(
+                            icon: Icons.receipt_long,
+                            title: 'Historique des commandes',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const OrdersHistoryScreen(),
                                 ),
-                                _buildActionRow(
-                                  icon: Icons.info_outline_rounded,
-                                  title: 'À propos',
-                                  onTap: () {
-                                    showAboutDialog(
-                                      context: context,
-                                      applicationName: 'Resto App',
-                                      applicationVersion: '1.0.0',
-                                      applicationIcon: const Icon(Icons.restaurant_menu),
-                                    );
-                                  },
-                                  showDivider: false,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          _buildActionCard(
+                            icon: Icons.info_outline_rounded,
+                            title: 'À propos',
+                            onTap: () {
+                              showAboutDialog(
+                                context: context,
+                                applicationName: 'Resto App',
+                                applicationVersion: '1.0.0',
+                                applicationIcon: const Icon(
+                                  Icons.restaurant_menu,
                                 ),
-                              ],
-                            ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          _buildActionCard(
+                            icon: Icons.logout,
+                            title: 'Déconnexion',
+                            color: Colors.red,
+                            onTap: () async {
+                              await authService.logout();
+                            },
                           ),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 30),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -323,128 +373,153 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow({
+  Widget _buildInfoCard({
     required IconData icon,
     required String title,
     required String value,
-    required bool showDivider,
-    Widget? trailing,
   }) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.orange,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (value.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailing != null) trailing,
-            ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            offset: const Offset(4, 4),
+            blurRadius: 8,
           ),
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            indent: 60,
-            color: Colors.grey[700],
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            offset: const Offset(-2, -2),
+            blurRadius: 4,
           ),
-      ],
-    );
-  }
-
-  Widget _buildActionRow({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    required bool showDivider,
-    Color? color,
-  }) {
-    final tileColor = color ?? Colors.orange;
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  offset: const Offset(2, 2),
+                  blurRadius: 4,
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  offset: const Offset(-1, -1),
+                  blurRadius: 2,
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.orange, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: tileColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: tileColor,
-                    size: 20,
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      color: color ?? Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.grey[500],
-                  size: 20,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final themeColor = color ?? Colors.orange;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF252525),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              offset: const Offset(4, 4),
+              blurRadius: 8,
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              offset: const Offset(-2, -2),
+              blurRadius: 4,
+            ),
+          ],
         ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            indent: 60,
-            color: Colors.grey[700],
-          ),
-      ],
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: themeColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: themeColor, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: color ?? Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    offset: const Offset(1, 1),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.chevron_right,
+                color: Colors.grey[600],
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -48,8 +48,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       nom: _nomController.text.trim(),
       prenom: _prenomController.text.trim(),
       telephone: _telephoneController.text.trim(),
-      email: _emailController.text.trim().isEmpty 
-          ? null 
+      email: _emailController.text.trim().isEmpty
+          ? null
           : _emailController.text.trim(),
       password: _passwordController.text,
       passwordConfirmation: _passwordConfirmationController.text,
@@ -70,10 +70,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             duration: Duration(seconds: 1),
           ),
         );
-        
+
         // Attendre un peu pour que le message s'affiche
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         if (mounted) {
           // Naviguer vers l'écran principal en remplaçant toute la pile de navigation
           Navigator.of(context).pushAndRemoveUntil(
@@ -84,12 +84,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } else {
       String errorMessage = result['message'] ?? 'Erreur d\'inscription';
-      
+
       // Nettoyer le message d'erreur pour l'utilisateur
       if (errorMessage.contains('DioException')) {
-        errorMessage = 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
+        errorMessage =
+            'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -100,10 +101,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Widget _build3DTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    String? hintText,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.05),
+            offset: const Offset(-1, -1),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[400]),
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+          prefixIcon: Icon(icon, color: Colors.orange),
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: const Color(0xFF1E1E1E),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -114,14 +170,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo
-                  Icon(
-                    Icons.restaurant_menu,
-                    size: 80,
-                    color: Colors.orange,
+                  // Logo 3D
+                  Center(
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            offset: const Offset(6, 6),
+                            blurRadius: 12,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            offset: const Offset(-3, -3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.restaurant_menu,
+                        size: 60,
+                        color: Colors.orange,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  
+                  const SizedBox(height: 32),
+
                   // Title
                   const Text(
                     'Créer un compte',
@@ -136,37 +214,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text(
                     'Inscrivez-vous pour continuer',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Nom field
-                  TextFormField(
+                  _build3DTextField(
                     controller: _nomController,
-                    keyboardType: TextInputType.name,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Nom *',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.person, color: Colors.orange),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
-                    ),
+                    label: 'Nom',
+                    icon: Icons.person,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Veuillez entrer votre nom';
@@ -175,31 +231,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Prénom field
-                  TextFormField(
+                  _build3DTextField(
                     controller: _prenomController,
-                    keyboardType: TextInputType.name,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Prénom *',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.person_outline, color: Colors.orange),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
-                    ),
+                    label: 'Prénom',
+                    icon: Icons.person_outline,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Veuillez entrer votre prénom';
@@ -208,31 +245,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Téléphone field
-                  TextFormField(
+                  _build3DTextField(
                     controller: _telephoneController,
+                    label: 'Téléphone',
+                    icon: Icons.phone,
                     keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Téléphone *',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.phone, color: Colors.orange),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
-                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Veuillez entrer votre numéro de téléphone';
@@ -244,76 +263,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Email field (optional)
-                  TextFormField(
+                  _build3DTextField(
                     controller: _emailController,
+                    label: 'Email (optionnel)',
+                    icon: Icons.email,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Email (optionnel)',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.email, color: Colors.orange),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
-                    ),
                     validator: (value) {
-                      if (value != null && value.isNotEmpty && !value.contains('@')) {
+                      if (value != null &&
+                          value.isNotEmpty &&
+                          !value.contains('@')) {
                         return 'Email invalide';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Password field
-                  TextFormField(
+                  _build3DTextField(
                     controller: _passwordController,
+                    label: 'Mot de passe',
+                    icon: Icons.lock,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Mot de passe *',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.lock, color: Colors.orange),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey[400],
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey[400],
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -326,43 +311,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Password confirmation field
-                  TextFormField(
+                  _build3DTextField(
                     controller: _passwordConfirmationController,
+                    label: 'Confirmer le mot de passe',
+                    icon: Icons.lock_outline,
                     obscureText: _obscurePasswordConfirmation,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Confirmer le mot de passe *',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.orange),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePasswordConfirmation
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey[400],
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePasswordConfirmation = !_obscurePasswordConfirmation;
-                          });
-                        },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePasswordConfirmation
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey[400],
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.orange),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[800],
+                      onPressed: () {
+                        setState(() {
+                          _obscurePasswordConfirmation =
+                              !_obscurePasswordConfirmation;
+                        });
+                      },
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -374,38 +342,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
-                  
+                  const SizedBox(height: 32),
+
                   // Register button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _register,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: _isLoading
+                              ? [Colors.grey.shade700, Colors.grey.shade800]
+                              : [Colors.orange, Colors.deepOrange],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: _isLoading
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.orange.withValues(alpha: 0.4),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 8,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  offset: const Offset(-2, -2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'S\'inscrire',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'S\'inscrire',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                   ),
-                  const SizedBox(height: 16),
-                  
+                  const SizedBox(height: 24),
+
                   // Login link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -428,11 +422,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: TextStyle(
                             color: Colors.orange,
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

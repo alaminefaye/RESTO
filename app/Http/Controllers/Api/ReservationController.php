@@ -10,6 +10,7 @@ use App\Enums\TableStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ReservationController extends Controller
@@ -20,7 +21,8 @@ class ReservationController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $query = Reservation::with(['table', 'user']);
 
         // Si l'utilisateur est un client, filtrer par ses réservations uniquement
@@ -147,7 +149,6 @@ class ReservationController extends Controller
             'table_id' => 'required|exists:tables,id',
             'nom_client' => 'required|string|max:255',
             'telephone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
             'date_reservation' => 'required|date|after_or_equal:today',
             'heure_debut' => 'required|date_format:H:i',
             'duree' => 'required|integer|min:1|max:12',
@@ -206,12 +207,14 @@ class ReservationController extends Controller
             $prixTotal = $prixParHeure > 0 ? $prixParHeure * $duree : $prixFixe;
 
             // Créer la réservation
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            
             $reservation = Reservation::create([
                 'table_id' => $request->table_id,
-                'user_id' => auth()->id(),
+                'user_id' => $user->id,
                 'nom_client' => $request->nom_client,
                 'telephone' => $request->telephone,
-                'email' => $request->email,
                 'date_reservation' => $dateReservation->toDateString(),
                 'heure_debut' => $heureDebut->format('H:i'),
                 'heure_fin' => $heureFin->format('H:i'),
@@ -257,7 +260,8 @@ class ReservationController extends Controller
         }
 
         // Vérifier que l'utilisateur peut voir cette réservation
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         if ($user->hasRole('client') && $reservation->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
@@ -317,7 +321,9 @@ class ReservationController extends Controller
             ], 404);
         }
 
-        $user = auth()->user();
+        // Vérifier que l'utilisateur peut annuler cette réservation
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         if ($user->hasRole('client') && $reservation->user_id !== $user->id) {
             return response()->json([
                 'success' => false,

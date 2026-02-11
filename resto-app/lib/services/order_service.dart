@@ -110,23 +110,16 @@ class OrderService {
               final order = Order.fromJson(json);
               orders.add(order);
             }
-          } catch (e) {
-            print('Erreur parsing commande: $e');
-            print('JSON: $json');
+          } catch (_) {
             // Continue avec les autres commandes même si une échoue
           }
         }
         return orders;
       }
       return [];
-    } on DioException catch (e) {
-      print('Erreur lors de la récupération des commandes en cours: ${e.message}');
-      if (e.response != null) {
-        print('Response data: ${e.response?.data}');
-      }
+    } on DioException {
       return [];
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération des commandes en cours: $e');
+    } catch (_) {
       return [];
     }
   }
@@ -155,23 +148,16 @@ class OrderService {
               final order = Order.fromJson(json);
               orders.add(order);
             }
-          } catch (e) {
-            print('Erreur parsing commande: $e');
-            print('JSON: $json');
+          } catch (_) {
             // Continue avec les autres commandes même si une échoue
           }
         }
         return orders;
       }
       return [];
-    } on DioException catch (e) {
-      print('Erreur lors de la récupération de l\'historique: ${e.message}');
-      if (e.response != null) {
-        print('Response data: ${e.response?.data}');
-      }
+    } on DioException {
       return [];
-    } catch (e) {
-      print('Erreur inattendue lors de la récupération de l\'historique: $e');
+    } catch (_) {
       return [];
     }
   }
@@ -196,28 +182,21 @@ class OrderService {
             orderData = data as Map<String, dynamic>;
           }
         } else {
-          print('OrderService: getOrder - Invalid response data format: $data');
           return null;
         }
         
         try {
         return Order.fromJson(orderData);
         } catch (e) {
-          print('OrderService: Erreur parsing Order: $e');
-          print('OrderService: OrderData: $orderData');
           return null;
         }
       }
-      print('OrderService: getOrder - Failed with status code: ${response.statusCode}');
       return null;
     } on DioException catch (e) {
-      print('OrderService: Erreur DioException lors de la récupération de la commande: ${e.message}');
       if (e.response != null) {
-        print('OrderService: Response data: ${e.response?.data}');
       }
       return null;
     } catch (e) {
-      print('OrderService: Erreur inattendue lors de la récupération de la commande: $e');
       return null;
     }
   }

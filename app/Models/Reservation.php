@@ -7,6 +7,29 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\ReservationStatus;
 use Carbon\Carbon;
 
+/**
+ * @property int $id
+ * @property int $table_id
+ * @property int|null $user_id
+ * @property string $nom_client
+ * @property string $telephone
+ * @property string|null $email
+ * @property \Illuminate\Support\Carbon $date_reservation
+ * @property \Illuminate\Support\Carbon $heure_debut
+ * @property \Illuminate\Support\Carbon|null $heure_fin
+ * @property int $duree
+ * @property int $nombre_personnes
+ * @property float $prix_total
+ * @property float|null $acompte
+ * @property ReservationStatus $statut
+ * @property string|null $notes
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * 
+ * @property-read Table|null $table
+ * @property-read User|null $user
+ * @property-read string $statut_display
+ */
 class Reservation extends Model
 {
     use HasFactory;

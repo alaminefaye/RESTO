@@ -29,8 +29,25 @@ class RestoApp extends StatelessWidget {
         title: 'Resto App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+          colorScheme: const ColorScheme.dark(
+            primary: Colors.orange,
+            secondary: Colors.orangeAccent,
+            surface: Color(0xFF252525),
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            titleTextStyle: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            iconTheme: IconThemeData(color: Colors.white),
+          ),
         ),
         home: const AuthWrapper(),
       ),

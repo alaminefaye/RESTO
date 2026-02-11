@@ -350,7 +350,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.orange.withOpacity(0.2) : Colors.grey[800],
+        color: isSelected ? Colors.orange.withValues(alpha: 0.2) : Colors.grey[800],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? Colors.orange : Colors.transparent,

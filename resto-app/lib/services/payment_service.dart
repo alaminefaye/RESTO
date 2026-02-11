@@ -177,7 +177,7 @@ class PaymentService {
         try {
           return {
             'success': true,
-            'message': (data is Map ? data['message'] : null) ?? 'Paiement confirmé avec succès',
+            'message': (data['message']) ?? 'Paiement confirmé avec succès',
             'data': Payment.fromJson(paymentData),
           };
         } catch (e) {
@@ -270,7 +270,7 @@ class PaymentService {
         try {
           return {
             'success': true,
-            'message': (data is Map ? data['message'] : null) ?? 'Paiement espèces effectué avec succès',
+            'message': (data['message']) ?? 'Paiement espèces effectué avec succès',
             'data': Payment.fromJson(paymentData),
             'monnaie_rendue': monnaieRendue,
           };
@@ -299,7 +299,7 @@ class PaymentService {
         if (e.response?.statusCode == 422 && data is Map && data.containsKey('data')) {
           // Erreur de montant insuffisant
           final errorData = data['data'] as Map<String, dynamic>;
-          message = '${message}\nMontant requis: ${errorData['montant_requis']} FCFA\nManquant: ${errorData['manquant']} FCFA';
+          message = '$message\nMontant requis: ${errorData['montant_requis']} FCFA\nManquant: ${errorData['manquant']} FCFA';
         }
       }
       return {
@@ -349,7 +349,7 @@ class PaymentService {
         try {
           return {
             'success': true,
-            'message': (data is Map ? data['message'] : null) ?? 'Paiement validé avec succès',
+            'message': (data['message']) ?? 'Paiement validé avec succès',
             'data': Payment.fromJson(paymentData),
           };
         } catch (e) {

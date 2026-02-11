@@ -18,56 +18,123 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      body: Consumer<Favorites>(
-        builder: (context, favorites, _) {
-          debugPrint('📋 FavoritesScreen rebuild - Nombre de favoris: ${favorites.products.length}');
-          if (favorites.products.isEmpty) {
-            return Center(
-              child: Column(
+      backgroundColor: const Color(0xFF1E1E1E),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header 3D
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.favorite_border,
-                    size: 80,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(height: 24),
+                children: const [
+                  Icon(Icons.favorite, color: Colors.red, size: 28),
+                  SizedBox(width: 10),
                   Text(
-                    'Aucun favori',
+                    'Mes Favoris',
                     style: TextStyle(
-                      color: Colors.grey[300],
-                      fontSize: 18,
+                      color: Colors.white,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ajoutez des produits à vos favoris',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
+                      letterSpacing: 1,
                     ),
                   ),
                 ],
               ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: favorites.products.length,
-              itemBuilder: (context, index) {
-                final product = favorites.products[index];
-                return _buildFavoriteItem(context, product);
-              },
             ),
-          );
-        },
+            // Content
+            Expanded(
+              child: Consumer<Favorites>(
+                builder: (context, favorites, _) {
+                  debugPrint(
+                    '📋 FavoritesScreen rebuild - Nombre de favoris: ${favorites.products.length}',
+                  );
+                  if (favorites.products.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(30),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 8,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  offset: const Offset(-2, -2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.favorite_border,
+                              size: 60,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Aucun favori',
+                            style: TextStyle(
+                              color: Colors.grey[300],
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ajoutez des produits à vos favoris',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      setState(() {});
+                    },
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: favorites.products.length,
+                      itemBuilder: (context, index) {
+                        final product = favorites.products[index];
+                        return _buildFavoriteItem(context, product);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -79,8 +146,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            offset: const Offset(4, 4),
+            blurRadius: 8,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.05),
+            offset: const Offset(-2, -2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: InkWell(
         onTap: () {
@@ -91,49 +170,66 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               // Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: product.imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: product.imageUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 5,
+                      offset: const Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: product.imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: product.imageUrl,
                           width: 80,
                           height: 80,
-                          color: Colors.grey[700],
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            width: 80,
+                            height: 80,
+                            color: const Color(0xFF1E1E1E),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.orange,
+                              ),
+                            ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
+                          errorWidget: (context, url, error) => Container(
+                            width: 80,
+                            height: 80,
+                            color: const Color(0xFF1E1E1E),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.restaurant_menu,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        )
+                      : Container(
                           width: 80,
                           height: 80,
-                          color: Colors.grey[700],
+                          color: const Color(0xFF1E1E1E),
+                          alignment: Alignment.center,
                           child: Icon(
                             Icons.restaurant_menu,
-                            color: Colors.grey[400],
+                            color: Colors.grey[600],
                           ),
                         ),
-                      )
-                    : Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey[700],
-                        child: Icon(
-                          Icons.restaurant_menu,
-                          color: Colors.grey[400],
-                        ),
-                      ),
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 15),
               // Info
               Expanded(
                 child: Column(
@@ -156,6 +252,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         color: Colors.orange,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black45,
+                            offset: Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -165,41 +268,66 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               Column(
                 children: [
                   // Bouton favoris
-                  IconButton(
-                    icon: Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 24,
-                    ),
-                    onPressed: () {
-                      favorites.removeFavorite(product);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.nom} retiré des favoris'),
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: Colors.grey[800],
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252525),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          offset: const Offset(2, 2),
+                          blurRadius: 4,
                         ),
-                      );
-                    },
-                  ),
-                  // Bouton ajouter au panier
-                  if (product.disponible)
-                    IconButton(
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          offset: const Offset(-1, -1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
                       icon: const Icon(
-                        Icons.add_shopping_cart,
-                        color: Colors.orange,
-                        size: 24,
+                        Icons.favorite,
+                        color: Colors.red,
+                        size: 20,
                       ),
                       onPressed: () {
-                        cart.addProduct(product);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${product.nom} ajouté au panier'),
-                            duration: const Duration(seconds: 1),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        favorites.removeFavorite(product);
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Bouton ajouter au panier
+                  if (product.disponible)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.4),
+                            offset: const Offset(2, 2),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.add_shopping_cart,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          cart.addProduct(product);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${product.nom} ajouté au panier'),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                 ],
               ),
