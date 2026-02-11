@@ -7,6 +7,7 @@ use App\Models\Reservation;
 use App\Models\Table;
 use App\Enums\ReservationStatus;
 use App\Enums\TableStatus;
+use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -90,6 +91,19 @@ class ReservationController extends Controller
                 'success' => false,
                 'disponible' => false,
                 'message' => 'La table est actuellement occupée',
+            ]);
+        }
+
+        // Vérifier s'il y a des commandes actives (non payées/terminées et non annulées)
+        $hasActiveOrders = $table->commandes()
+            ->whereNotIn('statut', [OrderStatus::Terminee, OrderStatus::Annulee])
+            ->exists();
+
+        if ($hasActiveOrders) {
+            return response()->json([
+                'success' => false,
+                'disponible' => false,
+                'message' => 'La table a des commandes en cours (non payées)',
             ]);
         }
 
@@ -182,6 +196,19 @@ class ReservationController extends Controller
         try {
             $table = Table::findOrFail($request->table_id);
             
+            // Vérifier si la table est occupée par des commandes actives
+            $hasActiveOrders = $table->commandes()
+                ->whereNotIn('statut', [OrderStatus::Terminee, OrderStatus::Annulee])
+                ->exists();
+
+            if ($hasActiveOrders || $table->statut === TableStatus::Occupee) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La table est actuellement occupée ou a des commandes en cours',
+                ], 400);
+            }
+
             // Vérifier la disponibilité
             $dateReservation = Carbon::parse($request->date_reservation);
             $heureDebut = Carbon::parse($request->heure_debut);

@@ -107,6 +107,20 @@ class CommandeController extends Controller
 
         DB::beginTransaction();
         try {
+            // Vérifier s'il y a déjà une commande active sur cette table
+            $existingOrder = Commande::where('table_id', $request->table_id)
+                ->whereNotIn('statut', [OrderStatus::Terminee, OrderStatus::Annulee])
+                ->first();
+
+            if ($existingOrder) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Une commande est déjà en cours sur cette table.',
+                    'data' => ['existing_order_id' => $existingOrder->id],
+                ], 409); // Conflict
+            }
+
             // Créer la commande
             $commande = Commande::create([
                 'table_id' => $request->table_id,
