@@ -18,8 +18,10 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final PaymentService _paymentService = PaymentService();
   PaymentMethod? _selectedPaymentMethod;
-  final TextEditingController _transactionIdController = TextEditingController();
-  final TextEditingController _amountReceivedController = TextEditingController();
+  final TextEditingController _transactionIdController =
+      TextEditingController();
+  final TextEditingController _amountReceivedController =
+      TextEditingController();
   bool _isProcessing = false;
   bool _isClient = false;
 
@@ -27,16 +29,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void initState() {
     super.initState();
     _checkUserRole();
-    _amountReceivedController.text = widget.order.montantTotal.toStringAsFixed(0);
+    _amountReceivedController.text = widget.order.montantTotal.toStringAsFixed(
+      0,
+    );
   }
 
-  Future<void> _checkUserRole() async {
+  String _generateTransactionId() {
+    // Génère un ID unique: TX-COMMANDE_ID-TIMESTAMP
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return 'TX-${widget.order.id}-$timestamp';
+  }
+
+  void _checkUserRole() {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUser;
     if (user != null) {
-      setState(() {
-        _isClient = user.roles.contains('client');
-      });
+      _isClient = user.roles.contains('client');
     }
   }
 
@@ -59,10 +67,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // Pour Wave et Orange Money, le client peut initier
-    if (_isClient && ![_selectedPaymentMethod!.value, PaymentMethod.wave.value, PaymentMethod.orangeMoney.value].contains(_selectedPaymentMethod!.value)) {
+    if (_isClient &&
+        ![
+          _selectedPaymentMethod!.value,
+          PaymentMethod.wave.value,
+          PaymentMethod.orangeMoney.value,
+        ].contains(_selectedPaymentMethod!.value)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pour le paiement en espèces, veuillez contacter le serveur'),
+          content: Text(
+            'Pour le paiement en espèces, veuillez contacter le serveur',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -75,14 +90,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     // Pour espèces (gérant uniquement), utiliser payerEspeces
     if (_selectedPaymentMethod == PaymentMethod.especes && !_isClient) {
-      final montantRecu = double.tryParse(_amountReceivedController.text) ?? 0.0;
+      final montantRecu =
+          double.tryParse(_amountReceivedController.text) ?? 0.0;
       if (montantRecu < widget.order.montantTotal) {
         setState(() {
           _isProcessing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Le montant reçu (${Formatters.formatCurrency(montantRecu)}) est inférieur au montant total (${Formatters.formatCurrency(widget.order.montantTotal)})'),
+            content: Text(
+              'Le montant reçu (${Formatters.formatCurrency(montantRecu)}) est inférieur au montant total (${Formatters.formatCurrency(widget.order.montantTotal)})',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -103,7 +121,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Paiement espèces effectué ! Monnaie rendue: ${Formatters.formatCurrency(monnaieRendue)}'),
+            content: Text(
+              'Paiement espèces effectué ! Monnaie rendue: ${Formatters.formatCurrency(monnaieRendue)}',
+            ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -120,7 +140,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // Pour Wave et Orange Money
-    if (_selectedPaymentMethod == PaymentMethod.wave || _selectedPaymentMethod == PaymentMethod.orangeMoney) {
+    if (_selectedPaymentMethod == PaymentMethod.wave ||
+        _selectedPaymentMethod == PaymentMethod.orangeMoney) {
       // Vérifier que transaction_id est fourni
       if (_transactionIdController.text.isEmpty) {
         setState(() {
@@ -144,7 +165,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (result['success'] == true && mounted) {
         final payment = result['data'] as Payment;
-        
+
         // Si c'est le client, confirmer immédiatement
         if (_isClient) {
           final confirmResult = await _paymentService.confirmPayment(
@@ -160,22 +181,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Navigator.pop(context, true);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Paiement confirmé ! En attente de validation par le gérant.'),
+                content: Text(
+                  'Paiement confirmé ! En attente de validation par le gérant.',
+                ),
                 backgroundColor: Colors.green,
               ),
             );
           } else if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(confirmResult['message'] ?? 'Erreur lors de la confirmation'),
+                content: Text(
+                  confirmResult['message'] ?? 'Erreur lors de la confirmation',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
           }
         } else {
           // Gérant : valider directement
-          final validateResult = await _paymentService.validatePayment(payment.id);
-          
+          final validateResult = await _paymentService.validatePayment(
+            payment.id,
+          );
+
           setState(() {
             _isProcessing = false;
           });
@@ -191,7 +218,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           } else if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(validateResult['message'] ?? 'Erreur lors de la validation'),
+                content: Text(
+                  validateResult['message'] ?? 'Erreur lors de la validation',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -204,7 +233,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Erreur lors de l\'initiation du paiement'),
+              content: Text(
+                result['message'] ?? 'Erreur lors de l\'initiation du paiement',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -299,7 +330,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF252525),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                        border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.5),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.4),
@@ -325,7 +358,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                           ),
                           Text(
-                            Formatters.formatCurrency(widget.order.montantTotal),
+                            Formatters.formatCurrency(
+                              widget.order.montantTotal,
+                            ),
                             style: const TextStyle(
                               color: Colors.orange,
                               fontSize: 24,
@@ -367,24 +402,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       _buildPaymentMethodOption(
                         PaymentMethod.especes,
                         'Espèces',
-                        'Paiement en espèces (gérant uniquement)',
+                        'Paiement en espèces',
                         Icons.money,
                       ),
 
                     const SizedBox(height: 30),
 
                     // Champs conditionnels selon le mode de paiement
-                    if (_selectedPaymentMethod == PaymentMethod.wave || _selectedPaymentMethod == PaymentMethod.orangeMoney) ...[
+                    if (_selectedPaymentMethod == PaymentMethod.wave ||
+                        _selectedPaymentMethod ==
+                            PaymentMethod.orangeMoney) ...[
                       _build3DTextField(
                         controller: _transactionIdController,
                         label: 'Numéro de transaction',
-                        hint: 'Entrez le numéro de transaction',
+                        hint: 'Généré automatiquement',
                         icon: Icons.receipt,
+                        readOnly: true,
                       ),
                       const SizedBox(height: 20),
                     ],
 
-                    if (_selectedPaymentMethod == PaymentMethod.especes && !_isClient) ...[
+                    if (_selectedPaymentMethod == PaymentMethod.especes &&
+                        !_isClient) ...[
                       _build3DTextField(
                         controller: _amountReceivedController,
                         label: 'Montant reçu',
@@ -400,8 +439,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       if (_amountReceivedController.text.isNotEmpty)
                         Builder(
                           builder: (context) {
-                            final montantRecu = double.tryParse(_amountReceivedController.text) ?? 0.0;
-                            final difference = montantRecu - widget.order.montantTotal;
+                            final montantRecu =
+                                double.tryParse(
+                                  _amountReceivedController.text,
+                                ) ??
+                                0.0;
+                            final difference =
+                                montantRecu - widget.order.montantTotal;
                             final isEnough = difference >= 0;
                             return Container(
                               padding: const EdgeInsets.all(16),
@@ -438,7 +482,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                           ? 'Monnaie à rendre: ${Formatters.formatCurrency(difference)}'
                                           : 'Montant insuffisant: ${Formatters.formatCurrency(-difference)}',
                                       style: TextStyle(
-                                        color: isEnough ? Colors.green : Colors.red,
+                                        color: isEnough
+                                            ? Colors.green
+                                            : Colors.red,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
@@ -463,7 +509,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: _isProcessing || _selectedPaymentMethod == null
+                            colors:
+                                _isProcessing || _selectedPaymentMethod == null
                                 ? [Colors.grey[700]!, Colors.grey[800]!]
                                 : [Colors.orange, Colors.deepOrange],
                             begin: Alignment.topLeft,
@@ -471,7 +518,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ),
                           borderRadius: BorderRadius.circular(15),
                           boxShadow: [
-                            if (!(_isProcessing || _selectedPaymentMethod == null)) ...[
+                            if (!(_isProcessing ||
+                                _selectedPaymentMethod == null)) ...[
                               BoxShadow(
                                 color: Colors.orange.withValues(alpha: 0.4),
                                 offset: const Offset(4, 4),
@@ -482,7 +530,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 offset: const Offset(-2, -2),
                                 blurRadius: 5,
                               ),
-                            ]
+                            ],
                           ],
                         ),
                         alignment: Alignment.center,
@@ -492,12 +540,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 width: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
-                            : const Text(
-                                'Procéder au paiement',
-                                style: TextStyle(
+                            : Text(
+                                _selectedPaymentMethod == PaymentMethod.especes
+                                    ? 'Encaisser'
+                                    : 'Procéder au paiement',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -531,9 +583,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF252525),
         borderRadius: BorderRadius.circular(20),
-        border: isSelected 
-            ? Border.all(color: Colors.orange, width: 2)
-            : null,
+        border: isSelected ? Border.all(color: Colors.orange, width: 2) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.4),
@@ -550,19 +600,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isDisabled ? null : () {
-            setState(() {
-              _selectedPaymentMethod = method;
-              if (method != PaymentMethod.especes) {
-                _amountReceivedController.clear();
-              } else {
-                _amountReceivedController.text = widget.order.montantTotal.toStringAsFixed(0);
-              }
-              if (method == PaymentMethod.especes) {
-                _transactionIdController.clear();
-              }
-            });
-          },
+          onTap: isDisabled
+              ? null
+              : () {
+                  setState(() {
+                    _selectedPaymentMethod = method;
+                    if (method != PaymentMethod.especes) {
+                      _amountReceivedController.clear();
+                      // Générer un ID de transaction automatique s'il n'existe pas déjà
+                      if (_transactionIdController.text.isEmpty) {
+                        _transactionIdController.text =
+                            _generateTransactionId();
+                      }
+                    } else {
+                      _amountReceivedController.text = widget.order.montantTotal
+                          .toStringAsFixed(0);
+                      _transactionIdController.clear();
+                    }
+                  });
+                },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -571,7 +627,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.orange.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
+                    color: isSelected
+                        ? Colors.orange.withValues(alpha: 0.2)
+                        : const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
@@ -600,7 +658,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       Text(
                         title,
                         style: TextStyle(
-                          color: isDisabled 
+                          color: isDisabled
                               ? Colors.grey[600]
                               : (isSelected ? Colors.white : Colors.grey[300]),
                           fontSize: 16,
@@ -610,10 +668,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
@@ -655,10 +710,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? suffixText,
     void Function(String)? onChanged,
+    bool readOnly = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF252525),
+        color: readOnly ? const Color(0xFF1E1E1E) : const Color(0xFF252525),
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -677,17 +733,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
         controller: controller,
         keyboardType: keyboardType,
         onChanged: onChanged,
-        style: const TextStyle(color: Colors.white),
+        readOnly: readOnly,
+        style: TextStyle(
+          color: readOnly ? Colors.grey[400] : Colors.white,
+          fontWeight: readOnly ? FontWeight.bold : FontWeight.normal,
+        ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey[400]),
           hintText: hint,
           hintStyle: TextStyle(color: Colors.grey[600]),
-          prefixIcon: Icon(icon, color: Colors.orange),
+          prefixIcon: Icon(icon, color: readOnly ? Colors.grey : Colors.orange),
           suffixText: suffixText,
           suffixStyle: TextStyle(color: Colors.grey[400]),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
