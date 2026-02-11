@@ -209,15 +209,21 @@ class ReservationService {
             reservationData = data as Map<String, dynamic>;
           }
         } else {
-          return null;
+          throw Exception('Format de données invalide');
         }
         return Reservation.fromJson(reservationData);
       }
       return null;
-    } on DioException {
-      return null;
-    } catch (_) {
-      return null;
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data is Map) {
+        final data = e.response?.data as Map;
+        if (data.containsKey('message')) {
+          throw Exception(data['message']);
+        }
+      }
+      throw Exception('Erreur de connexion: ${e.message}');
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
     }
   }
 

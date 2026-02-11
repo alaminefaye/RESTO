@@ -16,6 +16,7 @@ class ReservationDetailScreen extends StatefulWidget {
 class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
   final ReservationService _reservationService = ReservationService();
   Reservation? _reservation;
+  String? _errorMessage;
   bool _isLoading = true;
   bool _isProcessing = false;
 
@@ -30,6 +31,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
 
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -48,6 +50,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
         });
       }
     }
@@ -199,24 +202,45 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                     )
                   : _reservation == null
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 80,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Réservation non trouvée',
-                            style: TextStyle(
-                              color: Colors.grey[300],
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 80,
+                              color: Colors.red[400],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 24),
+                            Text(
+                              _errorMessage ?? 'Réservation non trouvée',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey[300],
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            ElevatedButton.icon(
+                              onPressed: _loadReservation,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Réessayer'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : SingleChildScrollView(
