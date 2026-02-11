@@ -601,10 +601,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             const SizedBox(height: 30),
 
                             // Boutons d'action
-                            if (_order!.statut == OrderStatus.attente &&
+                            if ((_order!.statut == OrderStatus.attente ||
+                                    _hasDraftProducts) &&
                                 _order!.produits != null &&
                                 _order!.produits!.isNotEmpty)
-                              // Bouton "Lancer la commande" si en attente
+                              // Bouton "Lancer la commande" si en attente ou nouveaux produits
                               GestureDetector(
                                 onTap: _launchOrder,
                                 child: Container(
@@ -772,11 +773,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildProductItem(OrderItem item) {
+    // Couleur de bordure selon le statut
+    Color borderColor = Colors.transparent;
+    if (item.statut == 'brouillon') {
+      borderColor = Colors.orange;
+    } else if (item.statut == 'envoye') {
+      borderColor = Colors.green.withOpacity(0.5);
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
+        border: Border.all(
+          color: borderColor,
+          width: item.statut == 'brouillon' ? 1.5 : 1,
+        ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -791,88 +804,112 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          // Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: item.image != null && item.image!.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: item.image!.startsWith('http')
-                        ? item.image!
-                        : '${ApiConfig.serverBaseUrl}/storage/${item.image}',
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      width: 60,
-                      height: 60,
-                      color: Colors.grey[800],
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.orange,
+          if (item.statut == 'brouillon')
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Nouveau',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          Row(
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: item.image != null && item.image!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: item.image!.startsWith('http')
+                            ? item.image!
+                            : '${ApiConfig.serverBaseUrl}/storage/${item.image}',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[800],
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[800],
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.restaurant_menu,
+                            size: 24,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.grey[800],
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.restaurant_menu,
+                          size: 24,
+                          color: Colors.grey,
                         ),
                       ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      width: 60,
-                      height: 60,
-                      color: Colors.grey[800],
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.restaurant_menu,
-                        size: 24,
-                        color: Colors.grey,
+              ),
+              const SizedBox(width: 15),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.produitNom,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                  )
-                : Container(
-                    width: 60,
-                    height: 60,
-                    color: Colors.grey[800],
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.restaurant_menu,
-                      size: 24,
-                      color: Colors.grey,
+                    const SizedBox(height: 4),
+                    Text(
+                      '${Formatters.formatCurrency(item.prix)} x ${item.quantite}',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
                     ),
-                  ),
-          ),
-          const SizedBox(width: 15),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.produitNom,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${Formatters.formatCurrency(item.prix)} x ${item.quantite}',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+              ),
+              // Total
+              Text(
+                Formatters.formatCurrency(item.total),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.orange,
                 ),
-              ],
-            ),
-          ),
-          // Total
-          Text(
-            Formatters.formatCurrency(item.total),
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.orange,
-            ),
+              ),
+            ],
           ),
         ],
       ),
-    );
+    ); // Correction: Fermeture de la Stack et du Container
   }
 
   Color _getStatusColor(OrderStatus status) {
@@ -990,8 +1027,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  bool get _hasDraftProducts {
+    if (_order == null || _order!.produits == null) return false;
+    return _order!.produits!.any((p) => p.statut == 'brouillon');
+  }
+
   Future<void> _launchOrder() async {
     if (_order == null) return;
+
+    // Si déjà en préparation/servie, on lance juste les nouveaux produits
+    if (_order!.statut != OrderStatus.attente && !_hasDraftProducts) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun nouveau produit à lancer')),
+      );
+      return;
+    }
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1117,7 +1167,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const Center(child: CircularProgressIndicator(color: Colors.orange)),
     );
 
-    final result = await _paymentService.launchOrder(widget.orderId);
+    final result = await _orderService.launchOrder(widget.orderId);
 
     if (!mounted) return;
     Navigator.pop(context); // Fermer le loading

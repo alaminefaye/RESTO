@@ -47,6 +47,7 @@ class OrderItem {
   final double prix;
   final int quantite;
   final String? image;
+  final String? statut; // brouillon, envoye
 
   OrderItem({
     required this.produitId,
@@ -54,15 +55,13 @@ class OrderItem {
     required this.prix,
     required this.quantite,
     this.image,
+    this.statut,
   });
 
   double get total => prix * quantite;
 
   Map<String, dynamic> toJson() {
-    return {
-      'produit_id': produitId,
-      'quantite': quantite,
-    };
+    return {'produit_id': produitId, 'quantite': quantite};
   }
 }
 
@@ -99,13 +98,16 @@ class Order {
               .map((p) {
                 try {
                   if (p is! Map) return null;
-                  
+
                   final pivot = p['pivot'] as Map<String, dynamic>?;
                   final produitId = p['id'] as int? ?? 0;
                   final produitNom = p['nom'] as String? ?? 'Produit inconnu';
-                  
+
                   // Helper pour convertir en double de manière sécurisée
-                  double parseDouble(dynamic value, [double defaultValue = 0.0]) {
+                  double parseDouble(
+                    dynamic value, [
+                    double defaultValue = 0.0,
+                  ]) {
                     if (value == null) return defaultValue;
                     if (value is num) return value.toDouble();
                     if (value is String) {
@@ -136,20 +138,21 @@ class Order {
                   } else if (p['prix'] != null) {
                     prix = parseDouble(p['prix']);
                   }
-                  
+
                   int quantite = 1;
                   if (p['quantite'] != null) {
                     quantite = parseInt(p['quantite'], 1);
                   } else if (pivot != null && pivot['quantite'] != null) {
                     quantite = parseInt(pivot['quantite'], 1);
                   }
-                  
+
                   return OrderItem(
                     produitId: produitId,
                     produitNom: produitNom,
                     prix: prix,
                     quantite: quantite,
                     image: p['image'] as String?,
+                    statut: p['statut'] ?? 'envoye',
                   );
                 } catch (e) {
                   debugPrint('Erreur parsing produit: $e');
@@ -196,7 +199,7 @@ class Order {
         return defaultValue;
       }
 
-    return Order(
+      return Order(
         id: parseInt(json['id'], 0),
         tableId: parseInt(json['table_id'], 0),
         userId: json['user_id'] != null ? parseInt(json['user_id']) : null,
@@ -205,9 +208,9 @@ class Order {
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)
             : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
         produits: produits,
         table: table,
       );
@@ -230,4 +233,3 @@ class Order {
     };
   }
 }
-

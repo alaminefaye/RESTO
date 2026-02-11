@@ -84,6 +84,7 @@ class ReservationService {
               ? (data['prix_total'] as num).toDouble()
               : null,
           'message': data['message'] ?? '',
+          'prochaine_disponibilite': data['prochaine_disponibilite'],
         };
       }
       return {

@@ -10,6 +10,7 @@ use App\Enums\OrderStatus;
 use App\Enums\StatutPaiement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class CommandeController extends Controller
@@ -79,7 +80,7 @@ class CommandeController extends Controller
     public function store(Request $request)
     {
         // Log pour débogage
-        \Log::info('CommandeController::store - Données reçues', [
+        Log::info('CommandeController::store - Données reçues', [
             'request_data' => $request->all(),
             'user_id' => auth()->id(),
         ]);
@@ -94,7 +95,7 @@ class CommandeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error('CommandeController::store - Erreur de validation', [
+            Log::error('CommandeController::store - Erreur de validation', [
                 'errors' => $validator->errors()->toArray(),
             ]);
             return response()->json([
@@ -114,7 +115,7 @@ class CommandeController extends Controller
                 'notes' => $request->notes,
             ]);
             
-            \Log::info('CommandeController::store - Commande créée', [
+            Log::info('CommandeController::store - Commande créée', [
                 'commande_id' => $commande->id,
             ]);
 
@@ -124,7 +125,7 @@ class CommandeController extends Controller
                 
                 if (!$produit) {
                     DB::rollBack();
-                    \Log::error('CommandeController::store - Produit non trouvé', [
+                    Log::error('CommandeController::store - Produit non trouvé', [
                         'produit_id' => $item['produit_id'] ?? null,
                     ]);
                     return response()->json([
@@ -135,7 +136,7 @@ class CommandeController extends Controller
                 
                 if (!$produit->isDisponible()) {
                     DB::rollBack();
-                    \Log::warning('CommandeController::store - Produit non disponible', [
+                    Log::warning('CommandeController::store - Produit non disponible', [
                         'produit_id' => $produit->id,
                         'produit_nom' => $produit->nom,
                     ]);
@@ -146,14 +147,15 @@ class CommandeController extends Controller
                 }
 
                 try {
-                $commande->ajouterProduit(
-                    $produit,
-                    $item['quantite'],
-                    $item['notes'] ?? null
-                );
+                $commande->produits()->attach($produit->id, [
+                    'quantite' => $item['quantite'],
+                    'prix_unitaire' => $produit->prix,
+                    'notes' => $item['notes'] ?? null,
+                    'statut' => 'envoye', // Directement envoyé à la création
+                ]);
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    \Log::error('CommandeController::store - Erreur lors de l\'ajout du produit', [
+                    Log::error('CommandeController::store - Erreur lors de l\'ajout du produit', [
                         'produit_id' => $produit->id,
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
@@ -178,7 +180,7 @@ class CommandeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('CommandeController::store - Exception', [
+            Log::error('CommandeController::store - Exception', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'file' => $e->getFile(),
@@ -303,6 +305,25 @@ class CommandeController extends Controller
 
         $commande->update($validator->validated());
 
+        // Gérer l'ajout de produits en mode "Brouillon"
+        if ($request->has('produits') && is_array($request->produits)) {
+             foreach ($request->produits as $item) {
+                 if (isset($item['id']) && isset($item['quantite'])) {
+                     $produit = Product::find($item['id']);
+                     if ($produit) {
+                         // On ajoute sans supprimer les existants (attach vs sync)
+                         // Et on met le statut 'brouillon' pour les nouveaux
+                         $commande->produits()->attach($produit->id, [
+                             'quantite' => $item['quantite'],
+                             'prix_unitaire' => $produit->prix,
+                             'notes' => $item['notes'] ?? null,
+                             'statut' => 'brouillon',
+                         ]);
+                     }
+                 }
+             }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Commande mise à jour avec succès',
@@ -406,7 +427,7 @@ class CommandeController extends Controller
     }
 
     /**
-     * Lancer une commande (passer de "attente" à "preparation")
+     * Lancer les produits en brouillon (valider la commande)
      * POST /api/commandes/{id}/lancer
      */
     public function lancer($id)
@@ -414,35 +435,24 @@ class CommandeController extends Controller
         $commande = Commande::find($id);
 
         if (!$commande) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Commande non trouvée',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Commande non trouvée'], 404);
         }
 
-        // Vérifier que la commande est en attente
-        if ($commande->statut !== OrderStatus::Attente) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette commande ne peut être lancée que si elle est en attente.',
-            ], 400);
-        }
+        // Mettre à jour tous les produits 'brouillon' en 'envoye'
+        DB::table('commande_produit')
+            ->where('commande_id', $commande->id)
+            ->where('statut', 'brouillon')
+            ->update(['statut' => 'envoye']);
 
-        // Vérifier que l'utilisateur est le propriétaire (pour les clients)
-        $user = auth()->user();
-        if ($user->hasRole('client') && $commande->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à lancer cette commande',
-            ], 403);
+        // Mettre à jour le statut global de la commande si nécessaire
+        // Si la commande était en attente, elle passe en préparation
+        if ($commande->statut === OrderStatus::Attente) {
+             $commande->update(['statut' => OrderStatus::Preparation]);
         }
-
-        // Changer le statut à "preparation"
-        $commande->update(['statut' => OrderStatus::Preparation]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Commande lancée avec succès',
+            'message' => 'Commande lancée en cuisine !',
             'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
         ]);
     }
@@ -534,6 +544,7 @@ class CommandeController extends Controller
                     'prix_unitaire' => (float) $produit->pivot->prix_unitaire,
                     'quantite' => (int) $produit->pivot->quantite,
                     'notes' => $produit->pivot->notes,
+                    'statut' => $produit->pivot->statut ?? 'envoye', // Défaut à envoye pour compatibilité
                     'sous_total' => (float) ($produit->pivot->prix_unitaire * $produit->pivot->quantite),
                 ];
             }),

@@ -14,10 +14,7 @@ class OrderService {
     try {
       final response = await _apiService.post(
         ApiConfig.orders,
-        data: {
-          'table_id': tableId,
-          'produits': produits,
-        },
+        data: {'table_id': tableId, 'produits': produits},
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -25,17 +22,13 @@ class OrderService {
         // L'API peut retourner directement l'objet ou dans 'data'
         Map<String, dynamic> orderData;
         if (data is Map) {
-          orderData = data.containsKey('data') ? data['data'] as Map<String, dynamic> : data as Map<String, dynamic>;
+          orderData = data.containsKey('data')
+              ? data['data'] as Map<String, dynamic>
+              : data as Map<String, dynamic>;
         } else {
-          return {
-            'success': false,
-            'message': 'Format de réponse invalide',
-          };
+          return {'success': false, 'message': 'Format de réponse invalide'};
         }
-        return {
-          'success': true,
-          'order': Order.fromJson(orderData),
-        };
+        return {'success': true, 'order': Order.fromJson(orderData)};
       } else {
         return {
           'success': false,
@@ -59,20 +52,54 @@ class OrderService {
         } else if (e.response?.statusCode == 401) {
           message = 'Non autorisé. Veuillez vous reconnecter.';
         } else if (e.response?.statusCode == 403) {
-              message = 'Non autorisé. Veuillez vous reconnecter.';
+          message = 'Non autorisé. Veuillez vous reconnecter.';
         } else if (e.response?.statusCode == 500) {
           message = 'Erreur serveur. Veuillez réessayer plus tard.';
         }
       } else if (e.type == DioExceptionType.connectionTimeout ||
-                 e.type == DioExceptionType.receiveTimeout) {
-        message = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+          e.type == DioExceptionType.receiveTimeout) {
+        message =
+            'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
       } else if (e.type == DioExceptionType.connectionError) {
-        message = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+        message =
+            'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
       }
+      return {'success': false, 'message': message};
+    } catch (e) {
       return {
         'success': false,
-        'message': message,
+        'message': 'Erreur inattendue: ${e.toString()}',
       };
+    }
+  }
+
+  // Lancer une commande (valider les produits en brouillon)
+  Future<Map<String, dynamic>> launchOrder(int orderId) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.orders}/$orderId/lancer',
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Commande lancée',
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Erreur lors du lancement',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Erreur lors du lancement de la commande';
+      if (e.response != null && e.response?.data is Map) {
+        final data = e.response?.data as Map;
+        message = data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,
@@ -89,7 +116,9 @@ class OrderService {
   // Récupérer les commandes du jour non terminées (Mes commandes)
   Future<List<Order>> getCurrentOrders() async {
     try {
-      final response = await _apiService.get('${ApiConfig.orders}?filter=current');
+      final response = await _apiService.get(
+        '${ApiConfig.orders}?filter=current',
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         // L'API peut retourner directement une liste ou dans 'data'
@@ -101,7 +130,7 @@ class OrderService {
         } else {
           return [];
         }
-        
+
         // Parsing sécurisé avec gestion des erreurs
         List<Order> orders = [];
         for (var json in ordersData) {
@@ -127,7 +156,9 @@ class OrderService {
   // Récupérer les commandes terminées (Historique)
   Future<List<Order>> getHistoryOrders() async {
     try {
-      final response = await _apiService.get('${ApiConfig.orders}?filter=history');
+      final response = await _apiService.get(
+        '${ApiConfig.orders}?filter=history',
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         // L'API peut retourner directement une liste ou dans 'data'
@@ -139,7 +170,7 @@ class OrderService {
         } else {
           return [];
         }
-        
+
         // Parsing sécurisé avec gestion des erreurs
         List<Order> orders = [];
         for (var json in ordersData) {
@@ -171,7 +202,9 @@ class OrderService {
         // L'API peut retourner directement l'objet ou dans 'data'
         Map<String, dynamic> orderData;
         if (data is Map) {
-          if (data.containsKey('success') && data['success'] == true && data.containsKey('data')) {
+          if (data.containsKey('success') &&
+              data['success'] == true &&
+              data.containsKey('data')) {
             // Format: {'success': true, 'data': {...}}
             orderData = data['data'] as Map<String, dynamic>;
           } else if (data.containsKey('data')) {
@@ -184,17 +217,16 @@ class OrderService {
         } else {
           return null;
         }
-        
+
         try {
-        return Order.fromJson(orderData);
+          return Order.fromJson(orderData);
         } catch (e) {
           return null;
         }
       }
       return null;
     } on DioException catch (e) {
-      if (e.response != null) {
-      }
+      if (e.response != null) {}
       return null;
     } catch (e) {
       return null;
@@ -235,23 +267,18 @@ class OrderService {
         final data = response.data;
         Map<String, dynamic> orderData;
         if (data is Map) {
-          orderData = data.containsKey('data') 
-              ? data['data'] as Map<String, dynamic> 
+          orderData = data.containsKey('data')
+              ? data['data'] as Map<String, dynamic>
               : data as Map<String, dynamic>;
         } else {
-          return {
-            'success': false,
-            'message': 'Format de réponse invalide',
-          };
+          return {'success': false, 'message': 'Format de réponse invalide'};
         }
-        return {
-          'success': true,
-          'order': Order.fromJson(orderData),
-        };
+        return {'success': true, 'order': Order.fromJson(orderData)};
       } else {
         return {
           'success': false,
-          'message': response.data['message'] ?? 'Erreur lors de l\'ajout du produit',
+          'message':
+              response.data['message'] ?? 'Erreur lors de l\'ajout du produit',
         };
       }
     } on DioException catch (e) {
@@ -264,13 +291,11 @@ class OrderService {
         if (e.response?.statusCode == 403) {
           message = 'Non autorisé. Veuillez vous reconnecter.';
         } else if (e.response?.statusCode == 400) {
-          message = data['message'] ?? 'Cette commande ne peut plus être modifiée';
+          message =
+              data['message'] ?? 'Cette commande ne peut plus être modifiée';
         }
       }
-      return {
-        'success': false,
-        'message': message,
-      };
+      return {'success': false, 'message': message};
     } catch (e) {
       return {
         'success': false,
@@ -279,4 +304,3 @@ class OrderService {
     }
   }
 }
-
