@@ -120,6 +120,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     try {
       models.Table? bestTable;
       Map<String, dynamic> successResult = {};
+      Map<String, dynamic>? failureResult;
       bool found = false;
 
       if (_isGameRoom) {
@@ -156,6 +157,8 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
           successResult = result;
           found = true;
           _selectedTable = bestTable;
+        } else {
+          failureResult = result;
         }
       } else {
         // Mode Table : Chercher une table appropriée
@@ -245,11 +248,18 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
             });
 
             if (mounted) {
+              String message = 'Occupé à cette heure.';
+              if (failureResult != null &&
+                  failureResult.containsKey('prochaine_disponibilite') &&
+                  failureResult['prochaine_disponibilite'] != null) {
+                message +=
+                    ' Disponible à partir de ${failureResult['prochaine_disponibilite']}';
+              }
+              message += ' Voir le programme ci-dessous.';
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Occupé à cette heure. Voir le programme ci-dessous.',
-                  ),
+                SnackBar(
+                  content: Text(message),
                   backgroundColor: Colors.orange,
                 ),
               );

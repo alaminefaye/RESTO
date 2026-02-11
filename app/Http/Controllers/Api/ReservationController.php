@@ -94,7 +94,7 @@ class ReservationController extends Controller
         }
 
         // Vérifier les conflits de réservation
-        $conflits = Reservation::where('table_id', $table->id)
+        $query = Reservation::where('table_id', $table->id)
             ->whereDate('date_reservation', $dateReservation->toDateString())
             ->whereIn('statut', [
                 ReservationStatus::Attente->value,
@@ -115,14 +115,27 @@ class ReservationController extends Controller
                     $q->where('heure_debut', '>=', $heureDebut->format('H:i'))
                       ->whereRaw("ADDTIME(heure_debut, CONCAT(duree, ':00:00')) <= ?", [$heureFin->format('H:i')]);
                 });
-            })
-            ->exists();
+            });
 
-        if ($conflits) {
+        if ($query->exists()) {
+            // Récupérer la dernière heure de fin des conflits pour proposer une alternative
+            $conflits = $query->get();
+            $maxFin = null;
+            
+            foreach ($conflits as $conflit) {
+                // Si heure_fin est null (anciennes données), on calcule
+                $fin = $conflit->heure_fin ?? $conflit->heure_debut->copy()->addHours($conflit->duree);
+                
+                if (!$maxFin || $fin->gt($maxFin)) {
+                    $maxFin = $fin;
+                }
+            }
+
             return response()->json([
                 'success' => false,
                 'disponible' => false,
                 'message' => 'La table n\'est pas disponible à cette heure',
+                'prochaine_disponibilite' => $maxFin ? $maxFin->format('H:i') : null,
             ]);
         }
 
