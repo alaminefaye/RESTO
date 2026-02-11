@@ -133,6 +133,7 @@ class Commande extends Model
             'quantite' => $quantite,
             'prix_unitaire' => $produit->prix,
             'notes' => $notes,
+            'statut' => 'brouillon',
         ]);
 
         $this->calculerMontantTotal();
@@ -168,7 +169,7 @@ class Commande extends Model
      */
     public function calculerMontantTotal(): void
     {
-        $total = $this->produits()->sum(\DB::raw('quantite * prix_unitaire'));
+        $total = $this->produits()->sum(\Illuminate\Support\Facades\DB::raw('quantite * prix_unitaire'));
         $this->update(['montant_total' => $total]);
     }
 
