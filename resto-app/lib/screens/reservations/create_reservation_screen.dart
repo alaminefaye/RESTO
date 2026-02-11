@@ -69,11 +69,23 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
 
   Future<void> _loadTables() async {
     try {
+      print('Chargement des tables...');
       final tables = await _tableService.getTables();
+      print('Tables chargées: ${tables.length}');
       if (mounted) {
         setState(() {
           _tables = tables.where((t) => t.actif).toList();
         });
+
+        if (_tables.isEmpty) {
+          print('Aucune table active trouvée');
+        } else {
+          print('Tables actives: ${_tables.length}');
+          // Debug: afficher les types de tables
+          for (var t in _tables) {
+            print('Table ${t.numero}: ${t.type}, Cap: ${t.capacite}');
+          }
+        }
       }
     } catch (e) {
       debugPrint('Erreur lors du chargement des tables: $e');
@@ -81,6 +93,24 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   }
 
   Future<void> _checkAvailability() async {
+    // Essayer de recharger les tables si la liste est vide
+    if (_tables.isEmpty) {
+      await _loadTables();
+      if (_tables.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Impossible de charger la liste des tables. Vérifiez votre connexion.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     setState(() {
       _isCheckingAvailability = true;
       _dailyReservations = [];

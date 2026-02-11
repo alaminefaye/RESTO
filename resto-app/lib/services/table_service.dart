@@ -108,8 +108,10 @@ class TableService {
         final data = response.data['data'] as List;
         return data.map((json) => models.Table.fromJson(json)).toList();
       }
+      print('Erreur getTables: ${response.statusCode}');
       return [];
     } catch (e) {
+      print('Exception getTables: $e');
       return [];
     }
   }

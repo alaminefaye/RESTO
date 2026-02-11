@@ -35,6 +35,19 @@ Route::prefix('produits')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Api\ProductController::class, 'show']);
 });
 
+// Tables - Routes publiques pour la consultation
+Route::prefix('tables')->group(function () {
+    // Liste des tables
+    Route::get('/', [App\Http\Controllers\Api\TableController::class, 'index']);
+    // Tables libres
+    Route::get('/libres', [App\Http\Controllers\Api\TableController::class, 'libres']);
+    // Détails d'une table (déjà public via QR code, mais on l'ajoute ici pour cohérence si besoin)
+    // Route::get('/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
+});
+
+// Réservations - Vérification disponibilité publique
+Route::post('/reservations/verifier-disponibilite', [App\Http\Controllers\Api\ReservationController::class, 'verifierDisponibilite']);
+
 // Routes protégées (authentification requise)
 Route::middleware('auth:sanctum')->group(function () {
     
@@ -52,18 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // ==========================================
-    // TABLES - Gestion des tables du restaurant
+    // TABLES - Gestion des tables (Administration)
     // ==========================================
     Route::prefix('tables')->group(function () {
-        // Liste des tables (visible par tous les utilisateurs authentifiés)
-        Route::get('/', [App\Http\Controllers\Api\TableController::class, 'index']);
-        
-        // Tables libres
-        Route::get('/libres', [App\Http\Controllers\Api\TableController::class, 'libres']);
-        
-        // Détails d'une table - déjà défini en public ci-dessus pour le scan QR
-        // Route::get('/{id}', [App\Http\Controllers\Api\TableController::class, 'show']);
-        
         // QR Code d'une table
         Route::get('/{id}/qrcode', [App\Http\Controllers\Api\TableController::class, 'getQRCode']);
         
@@ -187,9 +191,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // RESERVATIONS - Gestion des réservations de tables
     // ==========================================
     Route::prefix('reservations')->group(function () {
-        // Vérifier la disponibilité d'une table
-        Route::post('/verifier-disponibilite', [App\Http\Controllers\Api\ReservationController::class, 'verifierDisponibilite']);
-        
         // Liste des réservations
         Route::get('/', [App\Http\Controllers\Api\ReservationController::class, 'index']);
         

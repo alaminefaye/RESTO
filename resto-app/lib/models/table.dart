@@ -81,7 +81,8 @@ enum TableStatus {
 
 class Table {
   final int id;
-  final String numero; // Changé de int à String car peut être "T1", "VIP1", etc.
+  final String
+  numero; // Changé de int à String car peut être "T1", "VIP1", etc.
   final TableType type;
   final int capacite;
   final double? prix;
@@ -112,16 +113,30 @@ class Table {
     } else {
       numeroStr = json['numero'].toString();
     }
-    
+
+    // Helper pour convertir en int de manière sécurisée
+    int parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    // Helper pour convertir en double de manière sécurisée
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return Table(
-      id: json['id'] as int,
+      id: parseInt(json['id']),
       numero: numeroStr,
       type: TableType.fromString(json['type'] as String),
-      capacite: json['capacite'] as int,
-      prix: json['prix'] != null ? (json['prix'] as num).toDouble() : null,
-      prixParHeure: json['prix_par_heure'] != null
-          ? (json['prix_par_heure'] as num).toDouble()
-          : null,
+      capacite: parseInt(json['capacite']),
+      prix: parseDouble(json['prix']),
+      prixParHeure: parseDouble(json['prix_par_heure']),
       statut: TableStatus.fromString(json['statut'] as String),
       qrCode: json['qr_code'] as String?,
       actif: json['actif'] == 1 || json['actif'] == true,
@@ -149,4 +164,3 @@ class Table {
     return '${ApiConfig.serverBaseUrl}/storage/$qrCode';
   }
 }
-
