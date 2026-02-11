@@ -14,6 +14,13 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Helper pour convertir en int de manière sécurisée
+    int parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
     // Gérer les rôles qui peuvent être soit une liste de strings, soit une liste d'objets
     List<String> rolesList = [];
     if (json['roles'] != null) {
@@ -30,9 +37,9 @@ class User {
     }
     
     return User(
-      id: json['id'] as int,
+      id: parseInt(json['id']),
       name: json['name'] as String? ?? '',
-      email: json['email'] as String,
+      email: json['email'] as String? ?? '',
       phone: json['phone'] as String?,
       roles: rolesList,
     );

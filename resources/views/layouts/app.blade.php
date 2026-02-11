@@ -102,6 +102,14 @@
                         </a>
                     </li>
                     
+                    <!-- Réservations -->
+                    <li class="menu-item {{ request()->routeIs('reservations.*') ? 'active' : '' }}">
+                        <a href="{{ route('reservations.index') }}" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-calendar"></i>
+                            <div>Réservations</div>
+                        </a>
+                    </li>
+                    
                     <!-- Menu -->
                     <li class="menu-item {{ request()->routeIs('menu.*') ? 'active open' : '' }}">
                         <a href="javascript:void(0);" class="menu-link menu-toggle">

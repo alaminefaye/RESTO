@@ -82,45 +82,47 @@ class Reservation {
   });
 
   factory Reservation.fromJson(Map<String, dynamic> json) {
-    return Reservation(
-      id: json['id'] as int,
-      tableId: json['table_id'] as int?,
-      table: json['table'] != null ? Table.fromJson(json['table'] as Map<String, dynamic>) : null,
-      userId: json['user_id'] as int?,
-      nomClient: json['nom_client'] as String,
-      telephone: json['telephone'] as String,
-      email: json['email'] as String?,
-      dateReservation: DateTime.parse(json['date_reservation'] as String),
-      heureDebut: json['heure_debut'] as String,
-      heureFin: json['heure_fin'] as String?,
-      duree: json['duree'] as int,
-      nombrePersonnes: json['nombre_personnes'] as int,
-      prixTotal: (json['prix_total'] as num).toDouble(),
-      acompte: json['acompte'] != null ? (json['acompte'] as num).toDouble() : null,
-      statut: ReservationStatus.fromString(json['statut'] as String),
-      notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-    );
-  }
+    // Helper pour convertir en int de manière sécurisée
+    int parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'table_id': tableId,
-      'user_id': userId,
-      'nom_client': nomClient,
-      'telephone': telephone,
-      'email': email,
-      'date_reservation': dateReservation.toIso8601String().split('T')[0],
-      'heure_debut': heureDebut,
-      'heure_fin': heureFin,
-      'duree': duree,
-      'nombre_personnes': nombrePersonnes,
-      'prix_total': prixTotal,
-      'acompte': acompte,
-      'statut': statut.name,
-      'notes': notes,
-    };
+    // Helper pour convertir en double de manière sécurisée
+    double parseDouble(dynamic value) {
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
+    return Reservation(
+      id: parseInt(json['id']),
+      tableId: json['table_id'] != null ? parseInt(json['table_id']) : null,
+      table: json['table'] != null
+          ? Table.fromJson(json['table'] as Map<String, dynamic>)
+          : null,
+      userId: json['user_id'] != null ? parseInt(json['user_id']) : null,
+      nomClient: json['nom_client'] as String? ?? '',
+      telephone: json['telephone'] as String? ?? '',
+      email: json['email'] as String?,
+      dateReservation: DateTime.parse(
+          json['date_reservation'] as String? ?? DateTime.now().toIso8601String()),
+      heureDebut: json['heure_debut'] as String? ?? '00:00',
+      heureFin: json['heure_fin'] as String?,
+      duree: parseInt(json['duree']),
+      nombrePersonnes: parseInt(json['nombre_personnes']),
+      prixTotal: parseDouble(json['prix_total']),
+      acompte: json['acompte'] != null ? parseDouble(json['acompte']) : null,
+      statut: ReservationStatus.fromString(json['statut'] as String? ?? 'attente'),
+      notes: json['notes'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
+    );
   }
 }

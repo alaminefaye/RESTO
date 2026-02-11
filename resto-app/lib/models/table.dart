@@ -133,11 +133,11 @@ class Table {
     return Table(
       id: parseInt(json['id']),
       numero: numeroStr,
-      type: TableType.fromString(json['type'] as String),
+      type: TableType.fromString(json['type'] as String? ?? 'simple'),
       capacite: parseInt(json['capacite']),
       prix: parseDouble(json['prix']),
       prixParHeure: parseDouble(json['prix_par_heure']),
-      statut: TableStatus.fromString(json['statut'] as String),
+      statut: TableStatus.fromString(json['statut'] as String? ?? 'libre'),
       qrCode: json['qr_code'] as String?,
       actif: json['actif'] == 1 || json['actif'] == true,
     );

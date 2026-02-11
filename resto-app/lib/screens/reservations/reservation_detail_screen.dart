@@ -317,7 +317,9 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: Colors.orange.withValues(alpha: 0.1),
+                                          color: Colors.orange.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -390,7 +392,9 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.1),
+                                        color: Colors.orange.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(
@@ -468,7 +472,9 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(alpha: 0.2),
+                                        color: Colors.blue.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(

@@ -24,6 +24,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('tables/{table}/regenerate-qr', [TableController::class, 'regenerateQr'])
         ->name('tables.regenerate-qr');
     
+    // Réservations
+    Route::resource('reservations', \App\Http\Controllers\Web\ReservationController::class);
+    Route::post('reservations/{reservation}/confirm', [\App\Http\Controllers\Web\ReservationController::class, 'confirm'])
+        ->name('reservations.confirm');
+    Route::post('reservations/{reservation}/cancel', [\App\Http\Controllers\Web\ReservationController::class, 'cancel'])
+        ->name('reservations.cancel');
+
     // Menu - Categories & Products
     Route::prefix('menu')->name('menu.')->group(function () {
         // Categories
