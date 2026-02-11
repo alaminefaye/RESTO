@@ -95,8 +95,9 @@ class Reservation extends Model
         $this->save();
         
         // Marquer la table comme réservée
-        if ($this->table) {
-            $this->table->reserver();
+        $table = $this->getAttribute('table');
+        if ($table) {
+            $table->reserver();
         }
     }
 
@@ -109,7 +110,8 @@ class Reservation extends Model
         $this->save();
         
         // Libérer la table si elle était réservée pour cette réservation
-        if ($this->table && $this->table->statut->value === 'reservee') {
+        $table = $this->getAttribute('table');
+        if ($table && $table->statut->value === 'reservee') {
             // Vérifier qu'il n'y a pas d'autres réservations actives pour cette table
             $hasOtherReservations = self::where('table_id', $this->table_id)
                 ->where('id', '!=', $this->id)
@@ -122,7 +124,7 @@ class Reservation extends Model
                 ->exists();
             
             if (!$hasOtherReservations) {
-                $this->table->liberer();
+                $table->liberer();
             }
         }
     }
@@ -136,8 +138,9 @@ class Reservation extends Model
         $this->save();
         
         // Marquer la table comme occupée
-        if ($this->table) {
-            $this->table->occuper();
+        $table = $this->getAttribute('table');
+        if ($table) {
+            $table->occuper();
         }
     }
 
@@ -150,8 +153,9 @@ class Reservation extends Model
         $this->save();
         
         // Libérer la table
-        if ($this->table) {
-            $this->table->liberer();
+        $table = $this->getAttribute('table');
+        if ($table) {
+            $table->liberer();
         }
     }
 
@@ -160,12 +164,13 @@ class Reservation extends Model
      */
     public function calculerPrix(): float
     {
-        if (!$this->table) {
+        $table = $this->getAttribute('table');
+        if (!$table) {
             return 0;
         }
 
-        $prixParHeure = $this->table->prix_par_heure ?? 0;
-        $prixFixe = $this->table->prix ?? 0;
+        $prixParHeure = $table->prix_par_heure ?? 0;
+        $prixFixe = $table->prix ?? 0;
 
         if ($prixParHeure > 0) {
             return $prixParHeure * $this->duree;
