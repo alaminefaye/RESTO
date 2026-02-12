@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
+import '../../services/fcm_events.dart';
 import '../../config/api_config.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
@@ -25,11 +27,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Order? _order;
   bool _isLoading = true;
   bool _canAddProducts = true; // Vérifier si la commande peut être modifiée
+  StreamSubscription? _orderUpdateSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadOrder();
+
+    // Écouter les mises à jour des commandes
+    _orderUpdateSubscription = FCMEvents.orderUpdateStream.listen((_) {
+      if (mounted) {
+        // Optionnel : ne recharger que si c'est la commande actuelle concernée
+        // Mais pour l'instant on recharge tout car on n'a pas l'ID dans le stream
+        _loadOrder();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commande mise à jour 🔔'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _orderUpdateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadOrder() async {

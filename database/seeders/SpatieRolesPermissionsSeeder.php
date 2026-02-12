@@ -59,7 +59,8 @@ class SpatieRolesPermissionsSeeder extends Seeder
 
         $serveur = Role::firstOrCreate(['name' => 'serveur', 'guard_name' => 'web']);
         $serveur->syncPermissions([
-            'view_tables', 'view_menu', 'create_orders', 'view_orders', 'update_orders', 'view_reservations'
+            'view_tables', 'view_menu', 'create_orders', 'view_orders', 'update_orders', 'view_reservations',
+            'update_order_status'
         ]);
 
         // Rôle client pour les utilisateurs de l'application mobile

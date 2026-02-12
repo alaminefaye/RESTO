@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/order_service.dart';
 import '../../services/fcm_service.dart';
+import '../../services/fcm_events.dart';
 import '../../models/order.dart';
 import '../../utils/formatters.dart';
 import '../orders/orders_screen.dart';
+import '../orders/order_detail_screen.dart';
 import '../tables/tables_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -22,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _activeOrdersCount = 0;
   int _dailyOrderCount = 0;
   double _dailyRevenue = 0.0;
+  List<Order> _recentOrders = [];
   final OrderService _orderService = OrderService();
   late Timer _timer;
   StreamSubscription? _orderUpdateSubscription;
@@ -34,7 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _startClock();
 
     // Écouter les mises à jour des commandes via FCM
-    _orderUpdateSubscription = FCMService.orderUpdateStream.listen((_) {
+    _orderUpdateSubscription = FCMEvents.orderUpdateStream.listen((_) {
       if (mounted) {
         _loadDashboardData();
         // Optionnel: Jouer un petit son ou vibration ici aussi si l'app est ouverte
@@ -98,11 +101,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
 
+      // Filtrer les commandes récentes (non terminées)
+      // On prend les commandes du jour qui sont En attente ou En préparation
+      final recentOrders = currentOrders.where((o) {
+        return o.statut == OrderStatus.attente ||
+            o.statut == OrderStatus.preparation;
+      }).toList();
+
+      // Trier par date de mise à jour décroissante (la plus récente en haut)
+      recentOrders.sort((a, b) {
+        final aDate = a.updatedAt ?? a.createdAt;
+        final bDate = b.updatedAt ?? b.createdAt;
+        return bDate.compareTo(aDate);
+      });
+
       if (mounted) {
         setState(() {
           _activeOrdersCount = currentOrders.length;
           _dailyOrderCount = todayOrders.length;
           _dailyRevenue = revenue;
+          _recentOrders = recentOrders;
         });
       }
     } catch (e) {
@@ -333,6 +351,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
+            // SECTION COMMANDES RÉCENTES
+            if (_recentOrders.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active_outlined,
+                        color: Colors.orange,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Commandes Récentes',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_recentOrders.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 220,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _recentOrders.length,
+                  itemBuilder: (context, index) {
+                    final order = _recentOrders[index];
+                    return _buildRecentOrderCard(context, order);
+                  },
+                ),
+              ),
+            ],
+
             // GRID MENU
             Expanded(
               child: Padding(
@@ -355,7 +439,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               const OrdersScreen(showBackButton: true),
                         ),
                       ).then((_) => _loadDashboardData()),
-                      badgeCount: _activeOrdersCount,
                     ),
 
                     // CAISSE & PAIEMENTS
@@ -429,6 +512,201 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _markOrderAsServed(Order order) async {
+    final success = await _orderService.updateOrderStatus(
+      order.id,
+      OrderStatus.servie,
+    );
+    if (success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commande servie ! Elle a été retirée de la liste.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        _loadDashboardData();
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la mise à jour'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildRecentOrderCard(BuildContext context, Order order) {
+    // Dans le cas où 'prete' n'existe pas, on peut utiliser une autre logique ou supprimer
+    // Pour l'instant, on suppose que "En préparation" est le dernier état avant servie
+    final bool isPrep = order.statut == OrderStatus.preparation;
+    final bool isWaiting = order.statut == OrderStatus.attente;
+
+    final Color statusColor = isPrep
+        ? Colors.orange
+        : isWaiting
+        ? Colors.red
+        : Colors.grey;
+
+    final String statusText = order.statut.displayName;
+
+    // Récupérer la liste des produits
+    final String itemsSummary =
+        order.produits
+            ?.map((p) => "${p.quantite}x ${p.produitNom}")
+            .join(", ") ??
+        "Aucun article";
+
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 16, bottom: 8, top: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            offset: const Offset(4, 4),
+            blurRadius: 8,
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            offset: const Offset(-2, -2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderDetailScreen(orderId: order.id),
+              ),
+            ).then((_) => _loadDashboardData());
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: statusColor.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 8, color: statusColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '#${order.id}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.table_bar, size: 14, color: Colors.grey[400]),
+                    const SizedBox(width: 6),
+                    Text(
+                      order.table?.numero ?? 'Table ?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      Formatters.formatCurrency(order.montantTotal),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(color: Colors.white10, height: 16),
+                Expanded(
+                  child: Text(
+                    itemsSummary,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isPrep) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 36,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _markOrderAsServed(order),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text(
+                        "SERVIR MAINTENANT",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

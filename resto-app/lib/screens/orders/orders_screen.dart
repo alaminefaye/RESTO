@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Import Provider
+import 'package:provider/provider.dart';
+import 'dart:async';
+import '../../services/fcm_events.dart';
 import '../../models/order.dart';
 import '../../services/order_service.dart';
 import '../../services/auth_service.dart'; // Import AuthService
@@ -20,11 +22,32 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final OrderService _orderService = OrderService();
   List<Order> _orders = [];
   bool _isLoading = true;
+  StreamSubscription? _orderUpdateSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadOrders();
+
+    // Écouter les mises à jour des commandes
+    _orderUpdateSubscription = FCMEvents.orderUpdateStream.listen((_) {
+      if (mounted) {
+        _loadOrders();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Liste des commandes mise à jour 🔔'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _orderUpdateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadOrders() async {

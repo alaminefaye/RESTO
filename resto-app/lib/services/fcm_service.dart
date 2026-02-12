@@ -1,10 +1,15 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'auth_service.dart';
 import '../config/api_config.dart';
 import 'api_service.dart';
+import 'fcm_events.dart';
+import '../utils/navigator_key.dart';
+import '../screens/orders/orders_screen.dart';
+import '../screens/orders/order_detail_screen.dart';
 
 class FCMService {
   static final FCMService _instance = FCMService._internal();
@@ -14,11 +19,6 @@ class FCMService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
   AuthService? _authService;
-
-  // Stream pour notifier l'UI des mises à jour
-  static final StreamController<bool> _orderUpdateController =
-      StreamController<bool>.broadcast();
-  static Stream<bool> get orderUpdateStream => _orderUpdateController.stream;
 
   // Canal de notification pour Android
   late AndroidNotificationChannel channel;
@@ -102,7 +102,7 @@ class FCMService {
       // Déclencher un événement global pour rafraîchir l'UI
       if (message.data['type'] == 'commande_update' ||
           message.data['type'] == 'new_order') {
-        _orderUpdateController.add(true);
+        FCMEvents.triggerOrderUpdate();
       }
 
       // Si l'application est au premier plan, on affiche une notification locale
@@ -139,8 +139,31 @@ class FCMService {
     // 4. Gestionnaire d'ouverture de notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('Notification ouverte: ${message.data}');
-      // TODO: Naviguer vers l'écran approprié en fonction de message.data
-      // Par exemple : if (message.data['type'] == 'commande_update') ...
+      // Déclencher aussi l'update au cas où
+      if (message.data['type'] == 'commande_update' ||
+          message.data['type'] == 'new_order') {
+        FCMEvents.triggerOrderUpdate();
+      }
+
+      // Naviguer vers l'écran approprié
+      if (message.data['order_id'] != null) {
+        final orderId = int.tryParse(message.data['order_id'].toString());
+        if (orderId != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderDetailScreen(orderId: orderId),
+            ),
+          );
+        } else {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => const OrdersScreen()),
+          );
+        }
+      } else {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (_) => const OrdersScreen()),
+        );
+      }
     });
 
     // 5. Récupérer et envoyer le token

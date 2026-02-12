@@ -12,12 +12,23 @@ import 'firebase_options.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/fcm_service.dart';
+import 'utils/navigator_key.dart';
 
 // Handler pour les messages en background (doit être en dehors de toute classe)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Sur Android, le plugin gère déjà l'affichage via le canal natif si "notification" est présent.
+  // On évite d'initialiser Firebase inutilement si on a juste besoin d'afficher la notif.
+  // Si vous avez besoin de traiter des données (data), initialisez Firebase ici.
+
+  // Si le message contient une notification visible, on laisse le système natif gérer
+  if (message.notification != null) {
+    return;
+  }
+
+  // Sinon (message de données uniquement), on initialise Firebase pour traiter
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print("Handling a background message: ${message.messageId}");
+  debugPrint("Handling a background data message: ${message.messageId}");
 }
 
 void main() async {
@@ -45,6 +56,7 @@ class RestoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => Favorites()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Resto App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(

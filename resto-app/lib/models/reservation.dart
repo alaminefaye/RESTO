@@ -108,14 +108,17 @@ class Reservation {
       telephone: json['telephone'] as String? ?? '',
       email: json['email'] as String?,
       dateReservation: DateTime.parse(
-          json['date_reservation'] as String? ?? DateTime.now().toIso8601String()),
+        json['date_reservation'] as String? ?? DateTime.now().toIso8601String(),
+      ),
       heureDebut: json['heure_debut'] as String? ?? '00:00',
       heureFin: json['heure_fin'] as String?,
       duree: parseInt(json['duree']),
       nombrePersonnes: parseInt(json['nombre_personnes']),
       prixTotal: parseDouble(json['prix_total']),
       acompte: json['acompte'] != null ? parseDouble(json['acompte']) : null,
-      statut: ReservationStatus.fromString(json['statut'] as String? ?? 'attente'),
+      statut: ReservationStatus.fromString(
+        json['statut'] as String? ?? 'attente',
+      ),
       notes: json['notes'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

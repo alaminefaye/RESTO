@@ -35,7 +35,7 @@ class User {
         }
       }
     }
-    
+
     return User(
       id: parseInt(json['id']),
       name: json['name'] as String? ?? '',
@@ -59,4 +59,3 @@ class User {
     return roles.contains(role);
   }
 }
-
