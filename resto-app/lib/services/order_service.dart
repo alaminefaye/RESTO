@@ -246,6 +246,37 @@ class OrderService {
     }
   }
 
+  // Mettre à jour le statut d'une commande avec retour détaillé
+  Future<Map<String, dynamic>> updateOrderStatusDetailed(
+    int id,
+    OrderStatus status,
+  ) async {
+    try {
+      final response = await _apiService.patch(
+        ApiConfig.orderStatus(id),
+        data: {'statut': status.name},
+      );
+      if (response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        return {
+          'success': false,
+          'message':
+              response.data['message'] ??
+              'Erreur serveur (${response.statusCode})',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Erreur réseau';
+      if (e.response?.data is Map) {
+        message = (e.response?.data as Map)['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // Ajouter un produit à une commande existante
   Future<Map<String, dynamic>> addProductToOrder({
     required int orderId,

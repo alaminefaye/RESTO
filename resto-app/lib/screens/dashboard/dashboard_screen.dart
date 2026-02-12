@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/order_service.dart';
-import '../../services/fcm_service.dart';
 import '../../services/fcm_events.dart';
 import '../../models/order.dart';
 import '../../utils/formatters.dart';
@@ -147,281 +146,220 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E1E),
       body: SafeArea(
-        child: Column(
-          children: [
-            // HEADER CUSTOM
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'DOLCE VITA',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // HEADER CUSTOM
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'DOLCE VITA',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Bonjour, ${user.name}',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Date et Heure
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 14,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_getFormattedDate().substring(0, 1).toUpperCase()}${_getFormattedDate().substring(1)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Container(
+                                width: 1,
+                                height: 12,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 10),
+                              Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _getFormattedTime(),
+                                style: const TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.orange, width: 2),
+                        ),
+                        child: const CircleAvatar(
+                          backgroundColor: Color(0xFF252525),
+                          child: Icon(Icons.person, color: Colors.white),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Bonjour, ${user.name}',
-                        style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+
+              // STATS CARD (Pour Admin, Manager, Caissier)
+              if (isAdmin || isManager || isCaissier)
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF252525),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        offset: const Offset(4, 4),
+                        blurRadius: 8,
                       ),
-                      const SizedBox(height: 8),
-                      // Date et Heure
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.05),
+                        offset: const Offset(-2, -2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                          horizontal: 16,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.orange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${_getFormattedDate().substring(0, 1).toUpperCase()}${_getFormattedDate().substring(1)}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              width: 1,
-                              height: 12,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 10),
-                            Icon(
-                              Icons.access_time,
+                              Icons.calendar_today_outlined,
                               size: 14,
                               color: Colors.orange,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
-                              _getFormattedTime(),
-                              style: const TextStyle(
-                                color: Colors.orange,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                              'Statistiques du jour',
+                              style: TextStyle(
+                                color: Colors.orange[300],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.orange, width: 2),
-                      ),
-                      child: const CircleAvatar(
-                        backgroundColor: Color(0xFF252525),
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // STATS CARD (Pour Admin, Manager, Caissier)
-            if (isAdmin || isManager || isCaissier)
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF252525),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      offset: const Offset(4, 4),
-                      blurRadius: 8,
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.05),
-                      offset: const Offset(-2, -2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.orange.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 14,
-                            color: Colors.orange,
+                          _buildStatItem(
+                            'Commandes',
+                            '$_dailyOrderCount',
+                            Icons.receipt_long,
+                            Colors.blue,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Statistiques du jour',
-                            style: TextStyle(
-                              color: Colors.orange[300],
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                          Container(
+                            width: 1,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.grey[800]!,
+                                  Colors.grey[600]!,
+                                  Colors.grey[800]!,
+                                ],
+                              ),
                             ),
+                          ),
+                          _buildStatItem(
+                            'Recette',
+                            Formatters.formatCurrency(
+                              _dailyRevenue,
+                            ).replaceAll(' FCFA', ''),
+                            Icons.monetization_on,
+                            Colors.green,
+                            subtitle: 'FCFA',
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem(
-                          'Commandes',
-                          '$_dailyOrderCount',
-                          Icons.receipt_long,
-                          Colors.blue,
-                        ),
-                        Container(
-                          width: 1,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.grey[800]!,
-                                Colors.grey[600]!,
-                                Colors.grey[800]!,
-                              ],
-                            ),
-                          ),
-                        ),
-                        _buildStatItem(
-                          'Recette',
-                          Formatters.formatCurrency(
-                            _dailyRevenue,
-                          ).replaceAll(' FCFA', ''),
-                          Icons.monetization_on,
-                          Colors.green,
-                          subtitle: 'FCFA',
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-            // SECTION COMMANDES RÉCENTES
-            if (_recentOrders.isNotEmpty) ...[
+              // GRID MENU (Déplacé ici)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_active_outlined,
-                        color: Colors.orange,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Commandes Récentes',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_recentOrders.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 220,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _recentOrders.length,
-                  itemBuilder: (context, index) {
-                    final order = _recentOrders[index];
-                    return _buildRecentOrderCard(context, order);
-                  },
-                ),
-              ),
-            ],
-
-            // GRID MENU
-            Expanded(
-              child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -510,202 +448,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Future<void> _markOrderAsServed(Order order) async {
-    final success = await _orderService.updateOrderStatus(
-      order.id,
-      OrderStatus.servie,
-    );
-    if (success) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Commande servie ! Elle a été retirée de la liste.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        _loadDashboardData();
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la mise à jour'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildRecentOrderCard(BuildContext context, Order order) {
-    // Dans le cas où 'prete' n'existe pas, on peut utiliser une autre logique ou supprimer
-    // Pour l'instant, on suppose que "En préparation" est le dernier état avant servie
-    final bool isPrep = order.statut == OrderStatus.preparation;
-    final bool isWaiting = order.statut == OrderStatus.attente;
-
-    final Color statusColor = isPrep
-        ? Colors.orange
-        : isWaiting
-        ? Colors.red
-        : Colors.grey;
-
-    final String statusText = order.statut.displayName;
-
-    // Récupérer la liste des produits
-    final String itemsSummary =
-        order.produits
-            ?.map((p) => "${p.quantite}x ${p.produitNom}")
-            .join(", ") ??
-        "Aucun article";
-
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 16, bottom: 8, top: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252525),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            offset: const Offset(4, 4),
-            blurRadius: 8,
-          ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.05),
-            offset: const Offset(-2, -2),
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OrderDetailScreen(orderId: order.id),
-              ),
-            ).then((_) => _loadDashboardData());
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: statusColor.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.circle, size: 8, color: statusColor),
-                          const SizedBox(width: 6),
-                          Text(
-                            statusText,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '#${order.id}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.table_bar, size: 14, color: Colors.grey[400]),
-                    const SizedBox(width: 6),
-                    Text(
-                      order.table?.numero ?? 'Table ?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      Formatters.formatCurrency(order.montantTotal),
-                      style: const TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(color: Colors.white10, height: 16),
-                Expanded(
-                  child: Text(
-                    itemsSummary,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 13,
-                      height: 1.3,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+              // SECTION COMMANDES RÉCENTES (Déplacé en bas)
+              if (_recentOrders.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
                   ),
-                ),
-                if (isPrep) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 36,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _markOrderAsServed(order),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                      ),
-                      icon: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text(
-                        "SERVIR MAINTENANT",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                        child: const Icon(
+                          Icons.notifications_active_outlined,
+                          color: Colors.orange,
+                          size: 18,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Commandes Récentes',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_recentOrders.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _recentOrders.length,
+                  itemBuilder: (context, index) {
+                    final order = _recentOrders[index];
+                    return RecentOrderTile(
+                      order: order,
+                      onOrderUpdated: () {
+                        _loadDashboardData();
+                        FCMEvents.triggerOrderUpdate();
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -813,6 +627,286 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class RecentOrderTile extends StatefulWidget {
+  final Order order;
+  final VoidCallback onOrderUpdated;
+
+  const RecentOrderTile({
+    super.key,
+    required this.order,
+    required this.onOrderUpdated,
+  });
+
+  @override
+  State<RecentOrderTile> createState() => _RecentOrderTileState();
+}
+
+class _RecentOrderTileState extends State<RecentOrderTile> {
+  bool _isLoading = false;
+  final OrderService _orderService = OrderService();
+
+  Future<void> _markOrderAsServed() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _orderService.updateOrderStatusDetailed(
+        widget.order.id,
+        OrderStatus.servie,
+      );
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commande marquée comme servie !'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        widget.onOrderUpdated();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${result['message']}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur inattendue: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPrep = widget.order.statut == OrderStatus.preparation;
+    final bool isWaiting = widget.order.statut == OrderStatus.attente;
+
+    // Status text/color
+    String statusLabel = 'Nouvelle commande';
+    Color statusColor = Colors.red;
+    if (isPrep) {
+      statusLabel = 'En préparation';
+      statusColor = Colors.orange;
+    } else if (isWaiting) {
+      statusLabel = 'Nouvelle';
+      statusColor = Colors.red;
+    } else {
+      statusLabel = widget.order.statut.displayName;
+      statusColor = Colors.grey;
+    }
+
+    // Date formatting
+    final dateStr = DateFormat('dd/MM HH:mm').format(widget.order.createdAt);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: statusColor, width: 4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderDetailScreen(orderId: widget.order.id),
+              ),
+            ).then((_) {
+              // Trigger reload in parent via callback isn't enough if we just popped
+              // But onOrderUpdated will be called if we tap served.
+              // Here we want to reload dashboard if details changed something
+              // But we don't have direct access to parent's _loadDashboardData here easily without passing another callback?
+              // Actually, we can just call widget.onOrderUpdated()
+              widget.onOrderUpdated();
+            });
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Table Info
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.table_restaurant,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Main Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Table ${widget.order.table?.numero ?? "?"}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateStr,
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Product List
+                      if (widget.order.produits != null &&
+                          widget.order.produits!.isNotEmpty)
+                        ...widget.order.produits!
+                            .map(
+                              (p) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${p.quantite}x ',
+                                      style: const TextStyle(
+                                        color: Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        p.produitNom,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList()
+                      else
+                        Text(
+                          'Aucun produit',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Servi Button
+                Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _markOrderAsServed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.green.withOpacity(0.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Servi',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

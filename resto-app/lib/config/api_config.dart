@@ -27,7 +27,7 @@ class ApiConfig {
 
   // Orders
   static const String orders = '/commandes';
-  static String orderStatus(int id) => '/commandes/$id/status';
+  static String orderStatus(int id) => '/commandes/$id/statut';
   static String launchOrder(int id) => '/commandes/$id/lancer';
   static String orderInvoice(int id) => '/commandes/$id/facture';
 
@@ -39,7 +39,8 @@ class ApiConfig {
 
   // Reservations
   static const String reservations = '/reservations';
-  static const String checkAvailability = '/reservations/verifier-disponibilite';
+  static const String checkAvailability =
+      '/reservations/verifier-disponibilite';
   static String confirmReservation(int id) => '/reservations/$id/confirmer';
   static String cancelReservation(int id) => '/reservations/$id/annuler';
 

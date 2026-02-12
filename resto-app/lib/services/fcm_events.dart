@@ -5,7 +5,7 @@ class FCMEvents {
   static final StreamController<bool> _orderUpdateController =
       StreamController<bool>.broadcast();
   static Stream<bool> get orderUpdateStream => _orderUpdateController.stream;
-  
+
   static void triggerOrderUpdate() {
     _orderUpdateController.add(true);
   }

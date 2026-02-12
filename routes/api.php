@@ -153,7 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Changer le statut (serveur, caissier, manager, admin uniquement - pas les clients)
         Route::patch('/{id}/statut', [App\Http\Controllers\Api\CommandeController::class, 'updateStatut'])
-            ->middleware('permission:update_order_status');
+            ->middleware('permission:update_orders|update_order_status');
     });
     
     // ==========================================

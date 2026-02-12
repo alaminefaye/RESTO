@@ -73,6 +73,7 @@ class RoleSeeder extends Seeder
             'create_orders',
             'view_orders',
             'update_orders',
+            'update_order_status',
             'view_tables',
             'update_table_status',
             'view_menu',
