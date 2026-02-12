@@ -252,20 +252,38 @@ class OrderService {
     OrderStatus status,
   ) async {
     try {
-      final response = await _apiService.patch(
-        ApiConfig.orderStatus(id),
-        data: {'statut': status.name},
-      );
-      if (response.statusCode == 200) {
-        return {'success': true};
-      } else {
-        return {
-          'success': false,
-          'message':
-              response.data['message'] ??
-              'Erreur serveur (${response.statusCode})',
-        };
+      // Try specific status endpoint first
+      try {
+        final response = await _apiService.patch(
+          ApiConfig.orderStatus(id),
+          data: {'statut': status.name},
+        );
+        if (response.statusCode == 200) {
+          return {'success': true};
+        }
+      } on DioException catch (e) {
+        // If specific endpoint fails with 403/401, try the generic update endpoint
+        if (e.response?.statusCode == 403 || e.response?.statusCode == 401) {
+          final responseUpdate = await _apiService.patch(
+            '${ApiConfig.orders}/$id',
+            data: {'statut': status.name},
+          );
+          if (responseUpdate.statusCode == 200) {
+            return {'success': true};
+          } else {
+            // Fallback to original error if generic update also fails (or use the new error)
+            String message =
+                responseUpdate.data['message'] ??
+                'Erreur serveur (${responseUpdate.statusCode})';
+            return {'success': false, 'message': message};
+          }
+        }
+        rethrow; // Rethrow if it's not a permission error
       }
+      return {
+        'success': false,
+        'message': 'Erreur inconnue',
+      }; // Should not reach here if 200
     } on DioException catch (e) {
       String message = 'Erreur réseau';
       if (e.response?.data is Map) {
