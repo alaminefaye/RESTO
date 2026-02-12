@@ -276,6 +276,24 @@ class AuthController extends Controller
     }
 
     /**
+     * Mettre à jour le token FCM pour les notifications
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $user->update(['fcm_token' => $request->fcm_token]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token FCM mis à jour avec succès',
+        ]);
+    }
+
+    /**
      * Obtenir les informations de l'utilisateur connecté
      * 
      * @param Request $request

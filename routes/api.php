@@ -57,6 +57,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
+        Route::post('/fcm-token', [AuthController::class, 'updateFcmToken']);
+    });
+    
+    // ==========================================
+    // DASHBOARD - Statistiques (Manager, Admin)
+    // ==========================================
+    Route::middleware('permission:view_dashboard')->group(function () {
+        Route::get('/dashboard/stats', [App\Http\Controllers\Api\DashboardController::class, 'stats']);
     });
     
     // Route de test (à supprimer en production)
