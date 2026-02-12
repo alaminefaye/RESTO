@@ -195,14 +195,18 @@ class _TablesScreenState extends State<TablesScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // TODO: Action au clic (détails, assigner, etc.)
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Table ${table.numero}: $statusText'),
-                backgroundColor: statusColor,
-                duration: const Duration(seconds: 1),
-              ),
-            );
+            if (table.statut == models.TableStatus.reservee &&
+                table.reservationActuelle != null) {
+              _showReservationDetails(table);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Table ${table.numero}: $statusText'),
+                  backgroundColor: statusColor,
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            }
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
@@ -256,13 +260,11 @@ class _TablesScreenState extends State<TablesScreen> {
                         color: Colors.black.withOpacity(0.5),
                         offset: const Offset(2, 2),
                         blurRadius: 4,
-                        inset: true,
                       ),
                       BoxShadow(
                         color: Colors.white.withOpacity(0.05),
                         offset: const Offset(-1, -1),
                         blurRadius: 2,
-                        inset: true,
                       ),
                     ],
                   ),
@@ -290,6 +292,90 @@ class _TablesScreenState extends State<TablesScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showReservationDetails(models.Table table) {
+    final reservation = table.reservationActuelle!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF252525),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.event, color: Colors.orange),
+            const SizedBox(width: 10),
+            Text(
+              'Réservation Table ${table.numero}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow(Icons.person, 'Client', reservation.nomClient),
+            _buildDetailRow(Icons.phone, 'Téléphone', reservation.telephone),
+            _buildDetailRow(
+              Icons.schedule,
+              'Heure',
+              reservation.heureDebut.substring(0, 5),
+            ),
+            _buildDetailRow(
+              Icons.group,
+              'Personnes',
+              '${reservation.nombrePersonnes}',
+            ),
+            if (reservation.notes != null && reservation.notes!.isNotEmpty)
+              _buildDetailRow(Icons.note, 'Notes', reservation.notes!),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 20, color: Colors.orange),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

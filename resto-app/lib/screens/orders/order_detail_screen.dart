@@ -6,7 +6,6 @@ import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../services/order_service.dart';
 import '../../services/menu_service.dart';
-import '../../services/payment_service.dart';
 import '../../utils/formatters.dart';
 import 'payment_screen.dart';
 import 'invoice_screen.dart';
@@ -23,7 +22,6 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final OrderService _orderService = OrderService();
   final MenuService _menuService = MenuService();
-  final PaymentService _paymentService = PaymentService();
   Order? _order;
   bool _isLoading = true;
   bool _canAddProducts = true; // Vérifier si la commande peut être modifiée

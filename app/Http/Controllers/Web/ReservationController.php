@@ -53,7 +53,7 @@ class ReservationController extends Controller
 
         Reservation::create([
             'table_id' => $validated['table_id'],
-            'user_id' => auth()->id(), // Manager creating the reservation
+            'user_id' => $request->user()->id, // Manager creating the reservation
             'nom_client' => $validated['nom_client'],
             'telephone' => $validated['telephone'],
             'email' => $validated['email'],

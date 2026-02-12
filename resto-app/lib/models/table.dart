@@ -79,6 +79,41 @@ enum TableStatus {
   }
 }
 
+class TableReservationInfo {
+  final int id;
+  final String nomClient;
+  final String telephone;
+  final String dateReservation;
+  final String heureDebut;
+  final String? heureFin;
+  final int nombrePersonnes;
+  final String? notes;
+
+  TableReservationInfo({
+    required this.id,
+    required this.nomClient,
+    required this.telephone,
+    required this.dateReservation,
+    required this.heureDebut,
+    this.heureFin,
+    required this.nombrePersonnes,
+    this.notes,
+  });
+
+  factory TableReservationInfo.fromJson(Map<String, dynamic> json) {
+    return TableReservationInfo(
+      id: json['id'],
+      nomClient: json['nom_client'] ?? '',
+      telephone: json['telephone'] ?? '',
+      dateReservation: json['date_reservation'] ?? '',
+      heureDebut: json['heure_debut'] ?? '',
+      heureFin: json['heure_fin'],
+      nombrePersonnes: json['nombre_personnes'] ?? 0,
+      notes: json['notes'],
+    );
+  }
+}
+
 class Table {
   final int id;
   final String
@@ -90,6 +125,7 @@ class Table {
   final TableStatus statut;
   final String? qrCode;
   final bool actif;
+  final TableReservationInfo? reservationActuelle;
 
   Table({
     required this.id,
@@ -101,6 +137,7 @@ class Table {
     required this.statut,
     this.qrCode,
     this.actif = true,
+    this.reservationActuelle,
   });
 
   factory Table.fromJson(Map<String, dynamic> json) {
@@ -140,6 +177,9 @@ class Table {
       statut: TableStatus.fromString(json['statut'] as String? ?? 'libre'),
       qrCode: json['qr_code'] as String?,
       actif: json['actif'] == 1 || json['actif'] == true,
+      reservationActuelle: json['reservation_actuelle'] != null
+          ? TableReservationInfo.fromJson(json['reservation_actuelle'])
+          : null,
     );
   }
 

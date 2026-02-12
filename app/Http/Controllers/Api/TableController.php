@@ -8,6 +8,8 @@ use App\Services\QRCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
+use App\Enums\ReservationStatus;
+
 class TableController extends Controller
 {
     protected $qrCodeService;
@@ -320,6 +322,20 @@ class TableController extends Controller
      */
     private function formatTable(Table $table): array
     {
+        $reservationActuelle = null;
+        if ($table->statut === \App\Enums\TableStatus::Reservee) {
+            $reservationActuelle = $table->reservations()
+                ->where('date_reservation', '>=', now()->toDateString())
+                ->whereIn('statut', [
+                    ReservationStatus::Attente->value, 
+                    ReservationStatus::Confirmee->value,
+                    ReservationStatus::EnCours->value
+                ])
+                ->orderBy('date_reservation')
+                ->orderBy('heure_debut')
+                ->first();
+        }
+
         return [
             'id' => $table->id,
             'numero' => $table->numero,
@@ -335,6 +351,16 @@ class TableController extends Controller
             'actif' => $table->actif,
             'created_at' => $table->created_at?->toISOString(),
             'updated_at' => $table->updated_at?->toISOString(),
+            'reservation_actuelle' => $reservationActuelle ? [
+                'id' => $reservationActuelle->id,
+                'nom_client' => $reservationActuelle->nom_client,
+                'telephone' => $reservationActuelle->telephone,
+                'date_reservation' => $reservationActuelle->date_reservation,
+                'heure_debut' => $reservationActuelle->heure_debut,
+                'heure_fin' => $reservationActuelle->heure_fin,
+                'nombre_personnes' => $reservationActuelle->nombre_personnes,
+                'notes' => $reservationActuelle->notes,
+            ] : null,
         ];
     }
 }

@@ -21,7 +21,8 @@ class CommandeController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         $query = Commande::with(['table', 'user', 'produits']);
 
         // Si l'utilisateur est un client, filtrer par ses commandes uniquement
@@ -79,10 +80,13 @@ class CommandeController extends Controller
      */
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         // Log pour débogage
         Log::info('CommandeController::store - Données reçues', [
             'request_data' => $request->all(),
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
         ]);
 
         $validator = Validator::make($request->all(), [
@@ -124,7 +128,7 @@ class CommandeController extends Controller
             // Créer la commande
             $commande = Commande::create([
                 'table_id' => $request->table_id,
-                'user_id' => auth()->id(),
+                'user_id' => $user->id,
                 'statut' => OrderStatus::Attente,
                 'notes' => $request->notes,
             ]);
@@ -362,7 +366,8 @@ class CommandeController extends Controller
 
         // Vérifier que l'utilisateur est le propriétaire de la commande (pour les clients)
         // Les admins, managers, serveurs et caissiers peuvent modifier n'importe quelle commande
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         if ($user->hasRole('client') && $commande->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
@@ -500,7 +505,8 @@ class CommandeController extends Controller
 
         // Vérifier que l'utilisateur a les permissions pour changer le statut
         // Les clients ne peuvent pas changer le statut manuellement (sauf lancer)
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         if ($user->hasRole('client')) {
             return response()->json([
                 'success' => false,
@@ -527,25 +533,31 @@ class CommandeController extends Controller
             ? $commande->statut->value 
             : $commande->statut;
         
+        /** @var \App\Models\Table|null $table */
+        $table = $commande->table;
+
+        /** @var \App\Models\User|null $user */
+        $user = $commande->user;
+
         return [
             'id' => $commande->id,
-            'table' => $commande->table ? [
-                'id' => $commande->table->id,
-                'numero' => $commande->table->numero,
-                'type' => $commande->table->type instanceof \App\Enums\TableType 
-                    ? $commande->table->type->value 
-                    : $commande->table->type,
-                'capacite' => $commande->table->capacite,
-                'statut' => $commande->table->statut instanceof \App\Enums\TableStatus
-                    ? $commande->table->statut->value
-                    : $commande->table->statut,
-                'prix' => $commande->table->prix,
-                'prix_par_heure' => $commande->table->prix_par_heure,
-                'actif' => $commande->table->actif,
+            'table' => $table ? [
+                'id' => $table->id,
+                'numero' => $table->numero,
+                'type' => $table->type instanceof \App\Enums\TableType 
+                    ? $table->type->value 
+                    : $table->type,
+                'capacite' => $table->capacite,
+                'statut' => $table->statut instanceof \App\Enums\TableStatus
+                    ? $table->statut->value
+                    : $table->statut,
+                'prix' => $table->prix,
+                'prix_par_heure' => $table->prix_par_heure,
+                'actif' => $table->actif,
             ] : null,
-            'user' => $commande->user ? [
-                'id' => $commande->user->id,
-                'name' => $commande->user->name,
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
             ] : null,
             'statut' => $statutValue,
             'statut_display' => $commande->statut_display,
