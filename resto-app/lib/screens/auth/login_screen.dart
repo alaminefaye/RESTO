@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../../services/fcm_service.dart';
 import '../menu/menu_screen.dart';
 import 'register_screen.dart';
 
@@ -48,6 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success'] == true) {
       if (mounted) {
+        // Mettre à jour le token FCM après connexion
+        await FCMService().updateTokenAfterLogin(authService);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Connexion réussie !'),
