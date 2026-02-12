@@ -169,7 +169,10 @@ class Commande extends Model
      */
     public function calculerMontantTotal(): void
     {
-        $total = $this->produits()->sum(\Illuminate\Support\Facades\DB::raw('quantite * prix_unitaire'));
+        $total = \Illuminate\Support\Facades\DB::table('commande_produit')
+            ->where('commande_id', $this->id)
+            ->sum(\Illuminate\Support\Facades\DB::raw('quantite * prix_unitaire'));
+            
         $this->update(['montant_total' => $total]);
     }
 

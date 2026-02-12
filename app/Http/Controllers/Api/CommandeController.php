@@ -182,6 +182,9 @@ class CommandeController extends Controller
                 }
             }
 
+            // Calculer le montant total de la commande
+            $commande->calculerMontantTotal();
+
             // Marquer la table comme occupée
             $table = Table::find($request->table_id);
             if ($table->isLibre()) {
@@ -340,6 +343,9 @@ class CommandeController extends Controller
                      }
                  }
              }
+             
+             // Recalculer le montant total
+             $commande->calculerMontantTotal();
         }
 
         return response()->json([
