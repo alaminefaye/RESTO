@@ -822,8 +822,11 @@ class _RecentOrderTileState extends State<RecentOrderTile> {
 
                       // Product List
                       if (widget.order.produits != null &&
-                          widget.order.produits!.isNotEmpty)
+                          widget.order.produits!.any(
+                            (p) => p.statut != 'servi',
+                          ))
                         ...widget.order.produits!
+                            .where((p) => p.statut != 'servi')
                             .map(
                               (p) => Padding(
                                 padding: const EdgeInsets.only(bottom: 4),
