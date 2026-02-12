@@ -71,11 +71,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         setState(() {
           _order = order;
           _isLoading = false;
-          // La commande peut être modifiée si elle est en attente ou en préparation
+          // La commande peut être modifiée tant qu'elle n'est pas terminée ou annulée
+          // (On peut ajouter des produits à une commande servie)
           _canAddProducts =
               order != null &&
-              (order.statut == OrderStatus.attente ||
-                  order.statut == OrderStatus.preparation);
+              order.statut != OrderStatus.terminee &&
+              order.statut != OrderStatus.annulee;
         });
       }
     } catch (e) {

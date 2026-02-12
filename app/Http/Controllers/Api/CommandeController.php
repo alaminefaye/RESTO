@@ -486,8 +486,8 @@ class CommandeController extends Controller
             ->update(['statut' => 'envoye']);
 
         // Mettre à jour le statut global de la commande si nécessaire
-        // Si la commande était en attente, elle passe en préparation
-        if ($commande->statut === OrderStatus::Attente) {
+        // Si la commande était en attente ou servie (ajout de dessert/boisson), elle passe en préparation
+        if ($commande->statut === OrderStatus::Attente || $commande->statut === OrderStatus::Servie) {
              $commande->update(['statut' => OrderStatus::Preparation]);
         }
         
