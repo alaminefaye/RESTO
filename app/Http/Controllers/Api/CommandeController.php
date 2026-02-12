@@ -657,11 +657,14 @@ class CommandeController extends Controller
     private function notifierPersonnel(Commande $commande, string $type = 'create', $produits = null)
     {
         try {
-            // Récupérer les tokens des utilisateurs ayant les rôles appropriés
-            $tokens = User::role(['serveur', 'manager', 'admin', 'superadmin'])
-                ->whereNotNull('fcm_token')
-                ->pluck('fcm_token')
-                ->toArray();
+            // Utiliser whereHas au lieu du scope role() pour éviter l'erreur "There is no role named X"
+            // si un rôle n'existe pas dans la base de données.
+            $tokens = User::whereHas('roles', function($q) {
+                $q->whereIn('name', ['serveur', 'manager', 'admin', 'superadmin']);
+            })
+            ->whereNotNull('fcm_token')
+            ->pluck('fcm_token')
+            ->toArray();
 
             if (empty($tokens)) {
                 return;
