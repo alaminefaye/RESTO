@@ -110,27 +110,64 @@ class FCMService {
   }
 
   Future<void> _saveTokenToDatabase({String? token}) async {
-    // Si l'utilisateur n'est pas connecté, on ne fait rien
+    // On ne sauvegarde que si l'utilisateur est connecté
     if (_authService == null || !_authService!.isAuthenticated) return;
 
-    String? fcmToken = token ?? await _firebaseMessaging.getToken();
+    // Récupérer le token actuel
+    String? fcmToken;
+
+    // Sur iOS, il faut attendre que le token APNS soit disponible avant de demander le token FCM
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      String? apnsToken = await _firebaseMessaging.getAPNSToken();
+      if (apnsToken == null) {
+        debugPrint('⚠️ Token APNS non disponible. Attente de 3 secondes...');
+        await Future.delayed(const Duration(seconds: 3));
+        apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint('❌ Erreur: Token APNS toujours null sur le simulateur.');
+          // Mode Simulation : On génère un faux token pour tester le flux backend
+          fcmToken =
+              "SIMULATOR_TEST_TOKEN_${DateTime.now().millisecondsSinceEpoch}";
+          debugPrint(
+            '🔧 MODE SIMULATEUR: Utilisation d\'un token fictif pour tester l\'API.',
+          );
+        }
+      }
+    }
+
+    if (fcmToken == null) {
+      try {
+        fcmToken = token ?? await _firebaseMessaging.getToken();
+      } catch (e) {
+        debugPrint('❌ Erreur récupération getToken: $e');
+        return;
+      }
+    }
+
+    debugPrint('--- FCM TOKEN DEBUG ---');
+    debugPrint('Token récupéré : $fcmToken');
 
     if (fcmToken != null) {
-      debugPrint('FCM Token: $fcmToken');
       try {
+        // Envoi au backend
+        debugPrint('Envoi du token au serveur...');
         await _apiService.post(
           ApiConfig.updateFcmToken,
           data: {'fcm_token': fcmToken},
         );
-        debugPrint('Token FCM mis à jour sur le serveur');
+        debugPrint('✅ Token FCM mis à jour sur le serveur avec succès');
       } catch (e) {
-        debugPrint('Erreur lors de la mise à jour du token FCM: $e');
+        debugPrint('❌ Erreur lors de la mise à jour du token FCM: $e');
       }
+    } else {
+      debugPrint('⚠️ Impossible de récupérer le token FCM (null)');
     }
+    debugPrint('-----------------------');
   }
 
   // Appelé manuellement après le login
   Future<void> updateTokenAfterLogin(AuthService authService) async {
+    debugPrint('🔄 Mise à jour du token après connexion...');
     _authService = authService;
     await _saveTokenToDatabase();
   }

@@ -6,15 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\Commande;
 use App\Models\Product;
 use App\Models\Table;
+use App\Models\User;
 use App\Enums\OrderStatus;
 use App\Enums\StatutPaiement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Services\FCMService;
 
 class CommandeController extends Controller
 {
+    protected $fcmService;
+
+    public function __construct(FCMService $fcmService)
+    {
+        $this->fcmService = $fcmService;
+    }
+
     /**
      * Liste des commandes
      * GET /api/commandes
@@ -192,6 +201,9 @@ class CommandeController extends Controller
             }
 
             DB::commit();
+
+            // Notifier le personnel
+            $this->notifierPersonnel($commande->fresh()->load(['table', 'produits']), 'create');
 
             return response()->json([
                 'success' => true,
@@ -457,11 +469,17 @@ class CommandeController extends Controller
      */
     public function lancer($id)
     {
+        Log::info("CommandeController::lancer - Appel pour la commande ID: $id");
+
         $commande = Commande::find($id);
 
         if (!$commande) {
+            Log::warning("CommandeController::lancer - Commande non trouvée ID: $id");
             return response()->json(['success' => false, 'message' => 'Commande non trouvée'], 404);
         }
+
+        // Récupérer les produits en brouillon AVANT update pour la notification
+        $produitsBrouillon = $commande->produits()->wherePivot('statut', 'brouillon')->get();
 
         // Mettre à jour tous les produits 'brouillon' en 'envoye'
         DB::table('commande_produit')
@@ -474,6 +492,19 @@ class CommandeController extends Controller
         if ($commande->statut === OrderStatus::Attente) {
              $commande->update(['statut' => OrderStatus::Preparation]);
         }
+        
+        // Recalculer le montant total (par sécurité)
+        $commande->calculerMontantTotal();
+
+        Log::info("CommandeController::lancer - Commande mise à jour et produits envoyés.");
+
+        // Notifier le personnel (serveur, manager, admin)
+        if ($produitsBrouillon->isNotEmpty()) {
+            $this->notifierPersonnel($commande->load('table'), 'update', $produitsBrouillon);
+        }
+
+        // Notifier le client (celui qui a créé la commande)
+        $this->notifierClient($commande);
 
         return response()->json([
             'success' => true,
@@ -530,6 +561,41 @@ class CommandeController extends Controller
     }
 
     /**
+     * Notifier le client du changement de statut de sa commande
+     */
+    private function notifierClient(Commande $commande)
+    {
+        // On récupère l'utilisateur qui a créé la commande
+        $client = $commande->user;
+
+        if (!$client) {
+            Log::warning("NotifierClient: Pas de client associé à la commande {$commande->id}");
+            return;
+        }
+
+        if (!$client->fcm_token) {
+            Log::warning("NotifierClient: Client {$client->id} n'a pas de token FCM.");
+            return;
+        }
+
+        Log::info("NotifierClient: Tentative d'envoi de notif au client {$client->id} (Token: " . substr($client->fcm_token, 0, 20) . "...)");
+
+        $fcmService = app(\App\Services\FCMService::class);
+        $tableNumber = $commande->table ? $commande->table->numero : 'Inconnue';
+
+        $fcmService->sendToTokens(
+            [$client->fcm_token],
+            'Commande Lancée 🚀',
+            "Votre commande pour la table #{$tableNumber} a été lancée en cuisine.",
+            [
+                'type' => 'commande_update',
+                'commande_id' => (string)$commande->id,
+                'statut' => 'preparation'
+            ]
+        );
+    }
+
+    /**
      * Formater une commande pour la réponse
      */
     private function formatCommande(Commande $commande): array
@@ -583,5 +649,61 @@ class CommandeController extends Controller
             'created_at' => $commande->created_at ? $commande->created_at->toIso8601String() : null,
             'updated_at' => $commande->updated_at ? $commande->updated_at->toIso8601String() : null,
         ];
+    }
+
+    /**
+     * Notifier le personnel (serveur, manager, admin) via FCM
+     */
+    private function notifierPersonnel(Commande $commande, string $type = 'create', $produits = null)
+    {
+        try {
+            // Récupérer les tokens des utilisateurs ayant les rôles appropriés
+            $tokens = User::role(['serveur', 'manager', 'admin', 'superadmin'])
+                ->whereNotNull('fcm_token')
+                ->pluck('fcm_token')
+                ->toArray();
+
+            if (empty($tokens)) {
+                return;
+            }
+
+            $tableNumero = $commande->table ? $commande->table->numero : 'Inconnue';
+            $title = ($type === 'create') 
+                ? "Nouvelle Commande - Table $tableNumero"
+                : "Mise à jour Commande - Table $tableNumero";
+
+            // Construire le corps du message
+            $body = "";
+            /** @var \Illuminate\Database\Eloquent\Collection $items */
+            $items = $produits ?? $commande->produits;
+            
+            foreach ($items as $produit) {
+                $nom = $produit->nom;
+                $qte = $produit->pivot->quantite;
+                $body .= "{$qte}x {$nom}\n";
+            }
+
+            // Tronquer si trop long
+            if (mb_strlen($body) > 100) {
+                $body = mb_substr($body, 0, 97) . '...';
+            }
+            
+            if (empty($body)) {
+                $body = "Détails de la commande mis à jour.";
+            }
+
+            // Données supplémentaires pour la navigation in-app
+            $data = [
+                'type' => 'commande_update',
+                'commande_id' => (string) $commande->id,
+                'table_id' => (string) $commande->table_id,
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            ];
+
+            $this->fcmService->sendToTokens($tokens, $title, $body, $data);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de l'envoi de la notification FCM: " . $e->getMessage());
+        }
     }
 }

@@ -184,6 +184,7 @@ class CartScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Image
             ClipRRect(
@@ -191,47 +192,35 @@ class CartScreen extends StatelessWidget {
               child: item.product.imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: item.product.imageUrl,
-                      width: 80,
-                      height: 80,
+                      width: 70,
+                      height: 70,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
-                        width: 80,
-                        height: 80,
+                        width: 70,
+                        height: 70,
                         color: Colors.grey[800],
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.orange,
-                          ),
-                        ),
                       ),
                       errorWidget: (context, url, error) => Container(
-                        width: 80,
-                        height: 80,
+                        width: 70,
+                        height: 70,
                         color: Colors.grey[800],
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.restaurant_menu,
-                          color: Colors.grey[400],
-                        ),
+                        child: const Icon(Icons.restaurant, color: Colors.grey),
                       ),
                     )
                   : Container(
-                      width: 80,
-                      height: 80,
+                      width: 70,
+                      height: 70,
                       color: Colors.grey[800],
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.restaurant_menu,
-                        color: Colors.grey[400],
-                      ),
+                      child: const Icon(Icons.restaurant, color: Colors.grey),
                     ),
             ),
-            const SizedBox(width: 16),
-            // Info
+            const SizedBox(width: 12),
+
+            // Nom et Prix Unitaire
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     item.product.nom,
@@ -240,84 +229,106 @@ class CartScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     Formatters.formatCurrency(item.product.prix),
                     style: const TextStyle(
                       color: Colors.orange,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            // Quantité
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.remove,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      if (item.quantite > 1) {
-                        cart.updateQuantity(item.product.id, item.quantite - 1);
-                      } else {
-                        cart.removeProduct(item.product.id);
-                      }
-                    },
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(),
+
+            const SizedBox(width: 8),
+
+            // Colonne Quantité et Total
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  Formatters.formatCurrency(item.total),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                  Container(
-                    width: 30,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${item.quantite}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.orange, size: 18),
-                    onPressed: () {
-                      cart.updateQuantity(item.product.id, item.quantite + 1);
-                    },
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Total
-            SizedBox(
-              width: 80,
-              child: Text(
-                Formatters.formatCurrency(item.total),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
                 ),
-              ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E1E),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildQtyBtn(
+                        icon: Icons.remove,
+                        onTap: () {
+                          if (item.quantite > 1) {
+                            cart.updateQuantity(
+                              item.product.id,
+                              item.quantite - 1,
+                            );
+                          } else {
+                            cart.removeProduct(item.product.id);
+                          }
+                        },
+                      ),
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 24),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${item.quantite}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      _buildQtyBtn(
+                        icon: Icons.add,
+                        color: Colors.orange,
+                        onTap: () {
+                          cart.updateQuantity(
+                            item.product.id,
+                            item.quantite + 1,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQtyBtn({
+    required IconData icon,
+    required VoidCallback onTap,
+    Color color = Colors.white,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 16, color: color),
       ),
     );
   }
