@@ -52,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
         // Mettre à jour le token FCM après connexion
         await FCMService().updateTokenAfterLogin(authService);
 
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Connexion réussie !'),

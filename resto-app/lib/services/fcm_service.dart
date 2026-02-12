@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:async';
 import 'auth_service.dart';
 import '../config/api_config.dart';
 import 'api_service.dart';
@@ -13,6 +14,11 @@ class FCMService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
   AuthService? _authService;
+
+  // Stream pour notifier l'UI des mises à jour
+  static final StreamController<bool> _orderUpdateController =
+      StreamController<bool>.broadcast();
+  static Stream<bool> get orderUpdateStream => _orderUpdateController.stream;
 
   // Canal de notification pour Android
   late AndroidNotificationChannel channel;
@@ -46,10 +52,12 @@ class FCMService {
     // 2. Configuration pour Android (High Importance Channel)
     if (!kIsWeb) {
       channel = const AndroidNotificationChannel(
-        'high_importance_channel', // id
-        'Notifications Importantes', // title
-        description: 'Ce canal est utilisé pour les notifications importantes.',
-        importance: Importance.high,
+        'dolcevita_order_channel', // id
+        'Commandes Dolce Vita', // title
+        description: 'Notifications de nouvelles commandes et mises à jour',
+        importance: Importance.max,
+        sound: RawResourceAndroidNotificationSound('notification_sound'),
+        playSound: true,
       );
 
       flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -59,6 +67,25 @@ class FCMService {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.createNotificationChannel(channel);
+
+      // Initialisation pour iOS
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+            requestAlertPermission: true,
+            requestBadgePermission: true,
+            requestSoundPermission: true,
+          );
+
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      final InitializationSettings initializationSettings =
+          InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsIOS,
+          );
+
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
       await _firebaseMessaging.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -72,8 +99,14 @@ class FCMService {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
+      // Déclencher un événement global pour rafraîchir l'UI
+      if (message.data['type'] == 'commande_update' ||
+          message.data['type'] == 'new_order') {
+        _orderUpdateController.add(true);
+      }
+
       // Si l'application est au premier plan, on affiche une notification locale
-      if (notification != null && android != null && !kIsWeb) {
+      if (notification != null && !kIsWeb) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -83,8 +116,20 @@ class FCMService {
               channel.id,
               channel.name,
               channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher', // Assurez-vous d'avoir une icône
-              // ou 'launch_background' si vous utilisez l'icône par défaut
+              icon: '@mipmap/ic_launcher',
+              sound: const RawResourceAndroidNotificationSound(
+                'notification_sound',
+              ),
+              playSound: true,
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+              sound:
+                  'notification_sound.mp3', // Le fichier doit être dans le bundle
             ),
           ),
         );

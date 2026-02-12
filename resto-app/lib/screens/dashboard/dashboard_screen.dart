@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/order_service.dart';
+import '../../services/fcm_service.dart';
 import '../../models/order.dart';
 import '../../utils/formatters.dart';
 import '../orders/orders_screen.dart';
@@ -23,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _dailyRevenue = 0.0;
   final OrderService _orderService = OrderService();
   late Timer _timer;
+  StreamSubscription? _orderUpdateSubscription;
   DateTime _currentTime = DateTime.now();
 
   @override
@@ -30,11 +32,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _loadDashboardData();
     _startClock();
+
+    // Écouter les mises à jour des commandes via FCM
+    _orderUpdateSubscription = FCMService.orderUpdateStream.listen((_) {
+      if (mounted) {
+        _loadDashboardData();
+        // Optionnel: Jouer un petit son ou vibration ici aussi si l'app est ouverte
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nouvelle commande reçue ! 🔔'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _orderUpdateSubscription?.cancel();
     super.dispose();
   }
 
