@@ -7,11 +7,13 @@ import 'models/cart.dart';
 import 'models/favorites.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/menu/menu_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialiser Firebase
-  await Firebase.initializeApp();
+  // Initialiser Firebase avec les options explicites
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Initialiser les données de locale pour le formatage de date
   await initializeDateFormatting('fr_FR', null);
   runApp(const RestoApp());
@@ -91,6 +93,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<AuthService>(
       builder: (context, authService, _) {
         if (authService.isAuthenticated) {
+          final user = authService.currentUser;
+          if (user != null &&
+              (user.hasRole('admin') ||
+                  user.hasRole('manager') ||
+                  user.hasRole('serveur') ||
+                  user.hasRole('caissier'))) {
+            return const DashboardScreen();
+          }
           return const MenuScreen();
         } else {
           return const LoginScreen();

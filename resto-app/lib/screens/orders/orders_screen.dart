@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import Provider
 import '../../models/order.dart';
 import '../../services/order_service.dart';
+import '../../services/auth_service.dart'; // Import AuthService
 import '../../utils/formatters.dart';
 import '../menu/menu_screen.dart';
 import 'order_detail_screen.dart';
@@ -54,8 +56,37 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUser;
+    final isStaff =
+        user != null &&
+        (user.hasRole('admin') ||
+            user.hasRole('manager') ||
+            user.hasRole('serveur') ||
+            user.hasRole('caissier'));
+    final String title = isStaff ? 'Toutes les Commandes' : 'Mes Commandes';
+
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E1E),
+      floatingActionButton: isStaff
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MenuScreen()),
+                );
+              },
+              backgroundColor: Colors.orange,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Nouvelle Commande',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
@@ -121,9 +152,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     )
                   else
                     const SizedBox(width: 40), // Placeholder
-                  const Text(
-                    'Mes Commandes',
-                    style: TextStyle(
+                  Text(
+                    title,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
