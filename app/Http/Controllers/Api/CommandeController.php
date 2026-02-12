@@ -469,8 +469,6 @@ class CommandeController extends Controller
      */
     public function lancer($id)
     {
-        Log::info("CommandeController::lancer - Appel pour la commande ID: $id");
-
         $commande = Commande::find($id);
 
         if (!$commande) {
@@ -495,8 +493,6 @@ class CommandeController extends Controller
         
         // Recalculer le montant total (par sécurité)
         $commande->calculerMontantTotal();
-
-        Log::info("CommandeController::lancer - Commande mise à jour et produits envoyés.");
 
         // Notifier le personnel (serveur, manager, admin)
         if ($produitsBrouillon->isNotEmpty()) {
@@ -577,8 +573,6 @@ class CommandeController extends Controller
             Log::warning("NotifierClient: Client {$client->id} n'a pas de token FCM.");
             return;
         }
-
-        Log::info("NotifierClient: Tentative d'envoi de notif au client {$client->id} (Token: " . substr($client->fcm_token, 0, 20) . "...)");
 
         $fcmService = app(\App\Services\FCMService::class);
         $tableNumber = $commande->table ? $commande->table->numero : 'Inconnue';
