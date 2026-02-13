@@ -336,21 +336,7 @@ class CommandeController extends Controller
             ], 422);
         }
 
-        $validated = $validator->validated();
-        $commande->update($validated);
-
-        if (isset($validated['statut'])) {
-             $newStatus = OrderStatus::tryFrom($validated['statut']);
-             if ($newStatus === OrderStatus::Servie) {
-                 DB::table('commande_produit')
-                     ->where('commande_id', $commande->id)
-                     ->where(function($q) {
-                        $q->where('statut', 'envoye')
-                          ->orWhereNull('statut');
-                     })
-                     ->update(['statut' => 'servi']);
-             }
-        }
+        $commande->update($validator->validated());
 
         // Gérer l'ajout de produits en mode "Brouillon"
         if ($request->has('produits') && is_array($request->produits)) {
@@ -561,19 +547,7 @@ class CommandeController extends Controller
             ], 403);
         }
 
-        $newStatus = OrderStatus::from($validator->validated()['statut']);
-        $commande->update(['statut' => $newStatus]);
-
-        // Si la commande passe à "Servie", on marque tous les produits "envoyés" (ou sans statut) comme "servis"
-        if ($newStatus === OrderStatus::Servie) {
-            DB::table('commande_produit')
-                ->where('commande_id', $commande->id)
-                ->where(function($q) {
-                    $q->where('statut', 'envoye')
-                      ->orWhereNull('statut');
-                })
-                ->update(['statut' => 'servi']);
-        }
+        $commande->update(['statut' => OrderStatus::from($validator->validated()['statut'])]);
 
         return response()->json([
             'success' => true,
