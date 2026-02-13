@@ -39,10 +39,10 @@ class CommandeController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        // Filtre spécial pour "Mes commandes" (current) : commandes du jour non terminées
+        // Filtre spécial pour "Mes commandes" (current) : toutes les commandes non terminées
+        // (sans filtre de date : tant qu'une commande n'est pas payée, elle reste visible)
         if ($request->has('filter') && $request->filter === 'current') {
-            $query->duJour()
-                  ->where('statut', '!=', OrderStatus::Terminee);
+            $query->where('statut', '!=', OrderStatus::Terminee);
         }
         // Filtre spécial pour "Historique" (history) : commandes terminées uniquement
         elseif ($request->has('filter') && $request->filter === 'history') {
