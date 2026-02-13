@@ -743,6 +743,19 @@ class CommandeController extends Controller
 
             $this->fcmService->sendToTokens($tokens, $title, $body, $data);
 
+            // Enregistrer en base pour la liste notifications (lu / non lu)
+            $users = User::whereHas('roles', function ($q) {
+                $q->whereIn('name', ['serveur', 'manager', 'admin', 'superadmin']);
+            })->whereNotNull('fcm_token')->get();
+
+            foreach ($users as $u) {
+                $u->notifications()->create([
+                    'type' => 'commande',
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => $data,
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error("Erreur lors de l'envoi de la notification FCM: " . $e->getMessage());
         }

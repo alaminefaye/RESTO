@@ -50,6 +50,14 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Notifications en base (liste, lu / non lu).
+     */
+    public function notifications()
+    {
+        return $this->hasMany(UserNotification::class)->orderByDesc('created_at');
+    }
+
     // Toutes les méthodes de gestion des rôles et permissions sont fournies par Spatie\Permission\Traits\HasRoles
     // hasRole(), assignRole(), removeRole(), hasPermissionTo(), givePermissionTo(), etc.
 }

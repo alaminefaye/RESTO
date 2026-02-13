@@ -45,6 +45,12 @@ class ApiConfig {
   static String confirmReservation(int id) => '/reservations/$id/confirmer';
   static String cancelReservation(int id) => '/reservations/$id/annuler';
 
+  // Notifications
+  static const String notifications = '/notifications';
+  static String notificationMarkRead(int id) => '/notifications/$id/read';
+  static const String notificationsMarkAllRead = '/notifications/mark-all-read';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+
   // Headers
   static Map<String, String> getHeaders(String? token) {
     return {

@@ -11,6 +11,8 @@ import '../orders/orders_screen.dart';
 import '../orders/order_detail_screen.dart';
 import '../tables/tables_screen.dart';
 import '../profile/profile_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../../services/notification_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,6 +27,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _dailyRevenue = 0.0;
   List<Order> _recentOrders = [];
   final OrderService _orderService = OrderService();
+  final NotificationService _notificationService = NotificationService();
+  int _unreadNotificationCount = 0;
   late Timer _timer;
   StreamSubscription? _orderUpdateSubscription;
   DateTime _currentTime = DateTime.now();
@@ -78,6 +82,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadDashboardData() async {
     try {
+      // Badge notifications
+      final count = await _notificationService.getUnreadCount();
+      if (mounted) setState(() => _unreadNotificationCount = count);
+
       // Charger les commandes en cours et l'historique
       final currentOrders = await _orderService.getCurrentOrders();
       final historyOrders = await _orderService.getHistoryOrders();
@@ -229,6 +237,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
+                    // Icône notifications
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NotificationsScreen(),
+                              ),
+                            );
+                            _loadDashboardData();
+                          },
+                          icon: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          tooltip: 'Notifications',
+                        ),
+                        if (_unreadNotificationCount > 0)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.orange,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                _unreadNotificationCount > 99
+                                    ? '99+'
+                                    : '$_unreadNotificationCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    // Icône profil
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
