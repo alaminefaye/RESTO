@@ -659,10 +659,7 @@ class _RecentOrderTileState extends State<RecentOrderTile> {
     });
 
     try {
-      final result = await _orderService.updateOrderStatusDetailed(
-        widget.order.id,
-        OrderStatus.servie,
-      );
+      final result = await _orderService.marquerServi(widget.order.id);
 
       if (!mounted) return;
 
@@ -820,59 +817,75 @@ class _RecentOrderTileState extends State<RecentOrderTile> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Product List
-                      if (widget.order.produits != null &&
-                          widget.order.produits!.isNotEmpty)
-                        ...widget.order.produits!
-                            .map(
-                              (p) => Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${p.quantite}x ',
-                                      style: const TextStyle(
-                                        color: Colors.orange,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        p.produitNom,
+                      // Product List — afficher seulement les produits pas encore servis (nouveaux)
+                      () {
+                        final all = widget.order.produits ?? [];
+                        final nonServis = all.where((p) => !p.servi).toList();
+                        if (nonServis.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              all.isEmpty
+                                  ? 'Aucun produit'
+                                  : 'Aucun nouveau produit à servir',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                                fontStyle: all.isEmpty ? FontStyle.normal : FontStyle.italic,
+                              ),
+                            ),
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: nonServis
+                              .map(
+                                (p) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${p.quantite}x ',
                                         style: const TextStyle(
-                                          color: Colors.white,
+                                          color: Colors.orange,
+                                          fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
+                                      Expanded(
+                                        child: Text(
+                                          p.produitNom,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            )
-                            .toList()
-                      else
-                        Text(
-                          'Aucun produit',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 14,
-                          ),
-                        ),
+                              )
+                              .toList(),
+                        );
+                      }(),
                     ],
                   ),
                 ),
 
                 const SizedBox(width: 8),
 
-                // Servi Button
+                // Servi Button — actif seulement s'il reste des produits non servis
                 Column(
                   children: [
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _markOrderAsServed,
+                    Builder(
+                      builder: (context) {
+                        final nonServis = (widget.order.produits ?? []).where((p) => !p.servi).toList();
+                        final hasUnserved = nonServis.isNotEmpty;
+                        return ElevatedButton(
+                          onPressed: _isLoading || !hasUnserved ? null : _markOrderAsServed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -901,6 +914,8 @@ class _RecentOrderTileState extends State<RecentOrderTile> {
                               'Servi',
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
+                        );
+                      },
                     ),
                   ],
                 ),

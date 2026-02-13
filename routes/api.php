@@ -147,6 +147,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/lancer', [App\Http\Controllers\Api\CommandeController::class, 'lancer'])
             ->middleware('permission:update_orders');
         
+        // Marquer les produits non servis comme servis (bouton Servi)
+        Route::post('/{id}/marquer-servi', [App\Http\Controllers\Api\CommandeController::class, 'marquerServi'])
+            ->middleware('permission:update_orders|update_order_status');
+        
         // Récupérer la facture d'une commande (client peut voir sa facture, gérant peut toutes)
         Route::get('/{id}/facture', [App\Http\Controllers\Api\CommandeController::class, 'getFacture'])
             ->middleware('permission:view_orders');

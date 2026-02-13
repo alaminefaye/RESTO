@@ -29,6 +29,7 @@ class ApiConfig {
   static const String orders = '/commandes';
   static String orderStatus(int id) => '/commandes/$id/statut';
   static String launchOrder(int id) => '/commandes/$id/lancer';
+  static String marquerServi(int id) => '/commandes/$id/marquer-servi';
   static String orderInvoice(int id) => '/commandes/$id/facture';
 
   // Payments

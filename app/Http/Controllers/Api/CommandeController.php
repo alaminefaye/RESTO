@@ -510,6 +510,49 @@ class CommandeController extends Controller
     }
 
     /**
+     * Marquer les produits non encore servis comme servis (bouton "Servi").
+     * Les nouveaux produits ajoutés plus tard par le client restent non servis.
+     * POST /api/commandes/{id}/marquer-servi
+     */
+    public function marquerServi(Request $request, $id)
+    {
+        $commande = Commande::find($id);
+
+        if (!$commande) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée',
+            ], 404);
+        }
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        if ($user->hasRole('client')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à marquer cette commande comme servie',
+            ], 403);
+        }
+
+        // Marquer tous les produits pas encore servis comme servis
+        $updated = DB::table('commande_produit')
+            ->where('commande_id', $commande->id)
+            ->where(function ($q) {
+                $q->where('servi', false)->orWhereNull('servi');
+            })
+            ->update(['servi' => true]);
+
+        // Mettre à jour le statut de la commande en "servie"
+        $commande->update(['statut' => OrderStatus::Servie]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produits marqués comme servis. Les prochains ajouts du client apparaîtront comme nouveaux.',
+            'data' => $this->formatCommande($commande->fresh()->load(['table', 'user', 'produits'])),
+        ]);
+    }
+
+    /**
      * Changer le statut d'une commande
      * PATCH /api/commandes/{id}/statut
      */
@@ -636,7 +679,8 @@ class CommandeController extends Controller
                     'prix_unitaire' => (float) $produit->pivot->prix_unitaire,
                     'quantite' => (int) $produit->pivot->quantite,
                     'notes' => $produit->pivot->notes,
-                    'statut' => $produit->pivot->statut ?? 'envoye', // Défaut à envoye pour compatibilité
+                    'statut' => $produit->pivot->statut ?? 'envoye',
+                    'servi' => (bool) ($produit->pivot->servi ?? false),
                     'sous_total' => (float) ($produit->pivot->prix_unitaire * $produit->pivot->quantite),
                 ];
             }),

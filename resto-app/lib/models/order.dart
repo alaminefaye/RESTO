@@ -48,6 +48,8 @@ class OrderItem {
   final int quantite;
   final String? image;
   final String? statut; // brouillon, envoye
+  /// true si le serveur a déjà marqué cette ligne comme servie
+  final bool servi;
 
   OrderItem({
     required this.produitId,
@@ -56,6 +58,7 @@ class OrderItem {
     required this.quantite,
     this.image,
     this.statut,
+    this.servi = false,
   });
 
   double get total => prix * quantite;
@@ -153,6 +156,7 @@ class Order {
                     quantite: quantite,
                     image: p['image'] as String?,
                     statut: p['statut'] ?? 'envoye',
+                    servi: p['servi'] == true,
                   );
                 } catch (e) {
                   debugPrint('Erreur parsing produit: $e');

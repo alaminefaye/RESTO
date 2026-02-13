@@ -352,4 +352,38 @@ class OrderService {
       };
     }
   }
+
+  /// Marque comme servis tous les produits pas encore servis de la commande.
+  /// Les nouveaux produits ajoutés ensuite par le client restent "non servis".
+  Future<Map<String, dynamic>> marquerServi(int orderId) async {
+    try {
+      final response = await _apiService.post(
+        ApiConfig.marquerServi(orderId),
+      );
+      final data = response.data;
+      if (response.statusCode == 200) {
+        Map<String, dynamic>? orderData;
+        if (data is Map && data['data'] != null) {
+          orderData = data['data'] as Map<String, dynamic>;
+        }
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Produits marqués comme servis',
+          if (orderData != null) 'order': Order.fromJson(orderData),
+        };
+      }
+      return {
+        'success': false,
+        'message': (data is Map ? data['message'] : null) ?? 'Erreur serveur',
+      };
+    } on DioException catch (e) {
+      String message = 'Erreur réseau';
+      if (e.response?.data is Map) {
+        message = (e.response!.data as Map)['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
 }
