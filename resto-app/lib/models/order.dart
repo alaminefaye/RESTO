@@ -149,6 +149,12 @@ class Order {
                     quantite = parseInt(pivot['quantite'], 1);
                   }
 
+                  // servi: éviter null (API peut ne pas renvoyer le champ ou renvoyer null)
+                  final rawServi = p['servi'];
+                  final bool servi = (rawServi is bool)
+                      ? rawServi
+                      : (rawServi == true || rawServi == 1);
+
                   return OrderItem(
                     produitId: produitId,
                     produitNom: produitNom,
@@ -156,7 +162,7 @@ class Order {
                     quantite: quantite,
                     image: p['image'] as String?,
                     statut: p['statut'] ?? 'envoye',
-                    servi: p['servi'] == true,
+                    servi: servi,
                   );
                 } catch (e) {
                   debugPrint('Erreur parsing produit: $e');
