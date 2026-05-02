@@ -628,6 +628,11 @@ class CartTicket extends StatelessWidget {
           }
         }
 
+        // Lancer les produits brouillon en cuisine (brouillon → envoye)
+        if (printedAdditions.isNotEmpty) {
+          await orderService.launchOrder(cart.activeOrder!.id);
+        }
+
         // Impression du bon de cuisine "Supplément" (uniquement ce qui vient d'être ajouté)
         if (printedAdditions.isNotEmpty) {
           try {
@@ -639,7 +644,7 @@ class CartTicket extends StatelessWidget {
           } catch (_) {}
         }
 
-        // Re-sync pour tout avoir au propre (optionnel mais recommandé)
+        // Re-sync pour tout avoir au propre
         final updatedOrder = await orderService.getOrder(cart.activeOrder!.id);
         if (updatedOrder != null) {
           cart.syncWithOrder(updatedOrder);
