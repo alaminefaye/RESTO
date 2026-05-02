@@ -108,19 +108,27 @@ class Cart extends ChangeNotifier {
     _activeOrder = order;
 
     if (order.produits != null) {
+      // Fusionner les lignes du même produit (évite les doublons visuels
+      // lorsqu'un produit a plusieurs lignes pivot en base)
+      final Map<int, CartItem> merged = {};
       for (var p in order.produits!) {
-        _items.add(CartItem(
-          product: Product(
-            id: p.produitId,
-            nom: p.produitNom,
-            prix: p.prix,
-            categorieId: 0, // Not needed for cart display
-            disponible: true,
-          ),
-          quantite: p.quantite,
-          isNew: false,
-        ));
+        if (merged.containsKey(p.produitId)) {
+          merged[p.produitId]!.quantite += p.quantite;
+        } else {
+          merged[p.produitId] = CartItem(
+            product: Product(
+              id: p.produitId,
+              nom: p.produitNom,
+              prix: p.prix,
+              categorieId: 0,
+              disponible: true,
+            ),
+            quantite: p.quantite,
+            isNew: false,
+          );
+        }
       }
+      _items.addAll(merged.values);
     }
     notifyListeners();
   }
